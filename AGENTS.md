@@ -22,12 +22,16 @@ Este archivo proporciona instrucciones clave, reglas de gobernanza, directrices 
 ## 2. Orquestación de Agentes y Gobernanza
 
 ### 2.1 Jerarquía y Roles de Agentes
-1. **Agente Orquestador**:
-   - Supervisa el progreso del proyecto, desglosa las peticiones del usuario en unidades de trabajo discretas y asigna tareas a subagentes especializados utilizando modelos de lenguaje gratuitos adecuados (ej. Gemini Flash).
-2. **Agente Analista / Auditor**:
-   - Agente de revisión especializado responsable de auditar la calidad del código, el cumplimiento de la arquitectura, la cobertura de pruebas y de delegar subtareas específicas de revisión de código y seguridad utilizando modelos gratuitos.
+1. **Agente Orquestador (`orquestador`)**:
+   - Supervisa el progreso del proyecto, desglosa las peticiones del usuario en unidades de trabajo discretas y asigna tareas a subagentes especializados utilizando el modelo gratuito `google/gemini-3.5-flash-lite`.
+2. **Agente Analista / Auditor (`analista`)**:
+   - Agente de revisión especializado responsable de auditar la calidad del código, el cumplimiento de la arquitectura, la seguridad y de delegar subtareas de revisión utilizando el modelo gratuito `google/gemini-3.5-flash-lite`.
 3. **Subagentes Especializados**:
-   - Agentes de ejecución específicos por dominio (UI/Compose, Dominio/Casos de Uso, Datos/Room/API, integración MCP).
+   - **`subagente-ui`**: Especializado en Jetpack Compose, diseño visual y validación con `opendesign`.
+   - **`subagente-dominio`**: Especializado en lógica de negocio, Clean Architecture y casos de uso.
+   - **`subagente-datos`**: Especializado en Room, API, repositorios y procesamiento de PDF (dietas de nutricionistas).
+   - **`subagente-seguridad`**: Especializado en KeyStore, almacenamiento cifrado y auditoría de secretos.
+   - **`subagente-testing`**: Especializado en pruebas unitarias, UI testing y bucles de verificación (`./gradlew test lint`).
 
 ### 2.2 Gobernanza y Documentación
 - **Registros de Decisiones (`docs/decisions/`)**: Documentar decisiones arquitectónicas (ADRs), contratos de API y diseños de esquemas para que cualquier agente en cualquier dispositivo pueda retomar el trabajo instantáneamente.
