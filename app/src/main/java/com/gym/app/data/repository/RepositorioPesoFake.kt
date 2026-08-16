@@ -9,6 +9,8 @@ package com.gym.app.data.repository
 
 import com.gym.app.domain.model.RegistroPeso
 import com.gym.app.domain.repository.RepositorioPeso
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import java.time.LocalDate
 
 /**
@@ -39,6 +41,9 @@ class RepositorioPesoFake : RepositorioPeso {
             masaMuscularKg = 33.8
         )
     )
+
+    override fun observarPesos(userId: String): Flow<List<RegistroPeso>> =
+        flow { emit(registros.sortedByDescending { it.fecha }) }
 
     override suspend fun obtenerHistorial(): List<RegistroPeso> =
         registros.sortedByDescending { it.fecha }
