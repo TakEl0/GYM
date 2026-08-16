@@ -23,6 +23,15 @@
       "environment": {
         "OD_DAEMON_URL": "http://localhost:3000"
       }
+    },
+    "context7": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "enabled": true
     }
   }
 }
