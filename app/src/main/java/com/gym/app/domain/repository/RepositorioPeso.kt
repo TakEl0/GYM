@@ -7,6 +7,7 @@
 package com.gym.app.domain.repository
 
 import com.gym.app.domain.model.RegistroPeso
+import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
 /**
@@ -16,6 +17,13 @@ import java.time.LocalDate
  * puede usar Room, Health Connect o Supabase de forma intercambiable.
  */
 interface RepositorioPeso {
+
+    /**
+     * @brief Observa de forma reactiva el historial de registros de peso del usuario.
+     * @param userId Identificador del usuario propietario de los registros.
+     * @return Flujo reactivo con la lista de [RegistroPeso] de más reciente a más antiguo.
+     */
+    fun observarPesos(userId: String): Flow<List<RegistroPeso>>
 
     /**
      * @brief Obtiene el historial de registros de peso ordenado por fecha.

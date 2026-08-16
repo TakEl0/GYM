@@ -17,6 +17,7 @@ package com.gym.app.domain.model
  * @property totalEjercicios Número total de ejercicios de la sesión.
  * @property duracionMinutos Duración estimada o real de la sesión en minutos.
  * @property completo Indica si la sesión ha finalizado por completo.
+ * @property fecha Fecha programada de la sesión en formato epoch millis (0 = sin fecha asignada).
  */
 data class Entrenamiento(
     val id: String,
@@ -26,7 +27,8 @@ data class Entrenamiento(
     val ejerciciosRealizados: Int,
     val totalEjercicios: Int,
     val duracionMinutos: Int,
-    val completo: Boolean
+    val completo: Boolean,
+    val fecha: Long = 0L
 ) {
 
     /**
