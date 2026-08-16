@@ -1,7 +1,7 @@
 ---
-description: Subagente especializado en fuentes de datos, Room, clientes de red y procesamiento de archivos PDF de nutricionistas.
+description: Subagente especializado en Room, APIs y procesamiento de PDF de dietas de nutricionistas (usando Mistral Small Free).
 mode: subagent
-model: google/gemini-3.5-flash-lite
+model: openrouter/mistralai/mistral-small-24b-instruct-2501:free
 permission:
   edit: allow
   bash: ask

@@ -1,7 +1,7 @@
 ---
-description: Subagente especializado en seguridad, almacenamiento cifrado, manejo de secretos y auditoría.
+description: Subagente especializado en seguridad, KeyStore y almacenamiento cifrado (usando Llama 3.3 Free).
 mode: subagent
-model: google/gemini-3.5-flash-lite
+model: openrouter/meta-llama/llama-3.3-70b-instruct:free
 permission:
   edit: deny
   bash: ask

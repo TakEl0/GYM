@@ -1,5 +1,5 @@
 ---
-description: Subagente especializado en pruebas unitarias, pruebas de interfaz (UI testing) y bucles de verificación.
+description: Subagente especializado en pruebas unitarias, UI testing y bucles de verificación (usando Gemini Flash).
 mode: subagent
 model: google/gemini-3.5-flash-lite
 permission:

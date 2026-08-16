@@ -1,7 +1,7 @@
 ---
-description: Subagente especializado en interfaz de usuario con Jetpack Compose, diseño visual y validación con opendesign.
+description: Subagente especializado en interfaz de usuario con Jetpack Compose y opendesign (usando Qwen 2.5 Free).
 mode: subagent
-model: google/gemini-3.5-flash-lite
+model: openrouter/qwen/qwen-2.5-72b-instruct:free
 permission:
   edit: allow
   bash: ask

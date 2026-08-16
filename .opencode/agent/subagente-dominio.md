@@ -1,7 +1,7 @@
 ---
-description: Subagente especializado en la lógica de negocio, casos de uso y arquitectura limpia (Domain).
+description: Subagente especializado en la lógica de negocio, casos de uso y arquitectura limpia (usando DeepSeek Chat Free).
 mode: subagent
-model: google/gemini-3.5-flash-lite
+model: openrouter/deepseek/deepseek-chat
 permission:
   edit: allow
   bash: ask
