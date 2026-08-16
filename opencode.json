@@ -13,11 +13,15 @@
   },
   "mcp": {
     "opendesign": {
-      "type": "remote",
-      "url": "https://mcp.opendesign.dev",
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "open-design-mcp"
+      ],
       "enabled": true,
-      "headers": {
-        "Authorization": "Bearer {env:OPENDESIGN_API_KEY}"
+      "environment": {
+        "OD_DAEMON_URL": "http://localhost:3000"
       }
     }
   }
