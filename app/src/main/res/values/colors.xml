@@ -10,6 +10,7 @@
     <color name="superficie_oscura">#121A2E</color>
     <color name="azul_primario">#3D7BFF</color>
     <color name="blanco_azulado">#E8EEF9</color>
+    <color name="ic_launcher_background">#0A0F1E</color>
     <color name="icono_lanzador_fondo">#0A0F1E</color>
     <color name="icono_lanzador_primer_plano">#3D7BFF</color>
 </resources>
