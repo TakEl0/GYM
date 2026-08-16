@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    @file colors.xml
+    @brief Colores base del tema oscuro azulado de la aplicación GYM.
+    Se utilizan como valores XML únicamente; la paleta completa de Material 3
+    se define en el tema Compose (presentation/ui/theme/Color.kt).
+-->
+<resources>
+    <color name="fondo_oscuro">#0A0F1E</color>
+    <color name="superficie_oscura">#121A2E</color>
+    <color name="azul_primario">#3D7BFF</color>
+    <color name="blanco_azulado">#E8EEF9</color>
+    <color name="icono_lanzador_fondo">#0A0F1E</color>
+    <color name="icono_lanzador_primer_plano">#3D7BFF</color>
+</resources>

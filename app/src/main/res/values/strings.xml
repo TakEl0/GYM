@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    @file strings.xml
+    @brief Recursos de texto de la aplicación GYM en castellano.
+-->
+<resources>
+    <string name="app_name">GYM Pro</string>
+</resources>

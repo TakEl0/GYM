@@ -25,9 +25,38 @@ const { once } = require("node:events");
 const http = require("node:http");
 const path = require("node:path");
 const os = require("node:os");
+const fs = require("node:fs");
 
 const DEFAULT_URL = "http://127.0.0.1:7456";
 const NOMBRE_PROCESO_APP = "Open Design";
+
+const PROVIDER_BYOK = {
+  baseUrl: "https://openrouter.ai/api/v1",
+  modelo: "google/gemini-3.5-flash-lite",
+};
+
+/**
+ * @brief Obtiene la clave API de OpenRouter desde el fichero de autenticación de opencode.
+ * @returns {string|undefined} Clave API de OpenRouter, o undefined si no existe.
+ */
+function obtenerClaveOpenRouter() {
+  const candidatos = [
+    path.join(os.homedir(), ".local", "share", "opencode", "auth.json"),
+    path.join(os.homedir(), ".config", "opencode", "auth.json"),
+  ];
+  for (const ruta of candidatos) {
+    try {
+      const datos = JSON.parse(fs.readFileSync(ruta, "utf8"));
+      const openrouter = datos && datos.openrouter;
+      if (openrouter && openrouter.key) {
+        return openrouter.key;
+      }
+    } catch {
+      // Se ignora y se prueba la siguiente ruta.
+    }
+  }
+  return undefined;
+}
 
 /**
  * @brief Ejecuta un comando del sistema y devuelve su salida estándar.
@@ -128,6 +157,7 @@ async function descubrirUrlDaemon() {
  */
 async function principal() {
   const urlDaemon = await descubrirUrlDaemon();
+  const claveOpenRouter = obtenerClaveOpenRouter();
   const args = process.argv.slice(2);
 
   const hijo = spawn(
@@ -139,6 +169,9 @@ async function principal() {
       env: {
         ...process.env,
         OD_DAEMON_URL: urlDaemon,
+        BYOK_BASE_URL: PROVIDER_BYOK.baseUrl,
+        BYOK_MODEL: PROVIDER_BYOK.modelo,
+        ...(claveOpenRouter ? { BYOK_API_KEY: claveOpenRouter } : {}),
       },
     }
   );

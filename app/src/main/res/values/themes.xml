@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    @file themes.xml
+    @brief Tema XML raíz de la aplicación GYM.
+    La aplicación utiliza Jetpack Compose con Material 3, por lo que este tema
+    XML se limita a configurar la barra de estado y el aspecto de la ventana
+    antes de que Compose tome el control. El tema visual completo se define en
+    presentation/ui/theme/Theme.kt.
+-->
+<resources>
+    <style name="Theme.GYM" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/fondo_oscuro</item>
+        <item name="android:statusBarColor">@color/fondo_oscuro</item>
+        <item name="android:navigationBarColor">@color/fondo_oscuro</item>
+    </style>
+</resources>

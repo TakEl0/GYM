@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    @file ic_launcher.xml
+    @brief Icono vectorial del lanzador de la aplicación GYM.
+    Representa un peso (mancuerna) con el azul primario de la marca sobre
+    fondo oscuro. Sustituye a los recursos mipmap tradicionales para que el
+    proyecto compile sin dependencias binarias.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@color/icono_lanzador_fondo"
+        android:pathData="M0,0h108v108h-108z" />
+    <path
+        android:fillColor="@color/icono_lanzador_primer_plano"
+        android:pathData="M34,30 L74,30 L74,42 L34,42 Z M34,66 L74,66 L74,78 L34,78 Z M22,46 L36,46 L36,62 L22,62 Z M72,46 L86,46 L86,62 L72,62 Z" />
+</vector>
