@@ -13,20 +13,12 @@
   },
   "mcp": {
     "opendesign": {
-      "type": "local",
-      "command": [
-        "node",
-        ".opencode/mcp/opendesign-server.js"
-      ],
-      "enabled": true
-    },
-    "context7": {
-      "type": "local",
-      "command": [
-        "node",
-        ".opencode/mcp/context7-server.js"
-      ],
-      "enabled": true
+      "type": "remote",
+      "url": "https://mcp.opendesign.dev",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer {env:OPENDESIGN_API_KEY}"
+      }
     }
   }
 }
