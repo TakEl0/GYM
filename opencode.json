@@ -15,18 +15,16 @@
     "opendesign": {
       "type": "local",
       "command": [
-        "npx",
-        "-y",
-        "@opendesign/mcp"
+        "node",
+        ".opencode/mcp/opendesign-server.js"
       ],
       "enabled": true
     },
     "context7": {
       "type": "local",
       "command": [
-        "npx",
-        "-y",
-        "@context7/mcp"
+        "node",
+        ".opencode/mcp/context7-server.js"
       ],
       "enabled": true
     }
