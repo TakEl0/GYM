@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -51,9 +52,29 @@ enum class DestinoGYM(
 ) {
     INICIO("inicio", "Inicio", Icons.Filled.Home),
     CALENDARIO("calendario", "Calendario", Icons.Filled.CalendarMonth),
+    NUTRICION("nutricion", "Nutrición", Icons.Filled.RestaurantMenu),
     PESO("peso", "Peso", Icons.Filled.MonitorWeight),
     COMUNIDAD("comunidad", "Comunidad", Icons.Filled.Forum),
     PERFIL("perfil", "Perfil", Icons.Filled.Person)
+}
+
+/**
+ * @brief Rutas de segundo nivel (no presentes en la barra de navegación inferior).
+ * Agrupa las rutas de las pantallas avanzadas accesibles desde el panel de
+ * control: lista de la compra, gimnasio, rutinas e historial de sesiones.
+ */
+object RutasSegundoNivelGYM {
+    /** Ruta de la pantalla de Lista de la Compra. */
+    const val LISTA_COMPRA: String = "lista_compra"
+
+    /** Ruta de la pantalla de Gimnasio. */
+    const val GIMNASIO: String = "gimnasio"
+
+    /** Ruta de la pantalla de Rutinas. */
+    const val RUTINAS: String = "rutinas"
+
+    /** Ruta de la pantalla de Sesiones (historial semanal). */
+    const val SESIONES: String = "sesiones"
 }
 
 /**
@@ -140,10 +161,19 @@ private fun ContenidoAutenticado(contenedor: ContenedorDependencias) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(DestinoGYM.INICIO.ruta) {
-                PantallaDashboardGYM(contenedor = contenedor)
+                PantallaDashboardGYM(
+                    contenedor = contenedor,
+                    alNavegar = { ruta -> controlador.navigate(ruta) }
+                )
             }
             composable(DestinoGYM.CALENDARIO.ruta) {
                 PantallaCalendarioEntrenosGYM(contenedor = contenedor)
+            }
+            composable(DestinoGYM.NUTRICION.ruta) {
+                PantallaNutricionGYM(
+                    contenedor = contenedor,
+                    alNavegar = { ruta -> controlador.navigate(ruta) }
+                )
             }
             composable(DestinoGYM.PESO.ruta) {
                 PantallaRegistroPesoGYM(contenedor = contenedor)
@@ -153,6 +183,23 @@ private fun ContenidoAutenticado(contenedor: ContenedorDependencias) {
             }
             composable(DestinoGYM.PERFIL.ruta) {
                 PantallaPerfilGYM(contenedor = contenedor)
+            }
+
+            // -----------------------------------------------------------------
+            // Rutas de segundo nivel (accesos avanzados desde el panel de control).
+            // No aparecen en la barra de navegación inferior.
+            // -----------------------------------------------------------------
+            composable(RutasSegundoNivelGYM.LISTA_COMPRA) {
+                PantallaListaCompraGYM(contenedor = contenedor)
+            }
+            composable(RutasSegundoNivelGYM.GIMNASIO) {
+                PantallaGimnasioGYM(contenedor = contenedor)
+            }
+            composable(RutasSegundoNivelGYM.RUTINAS) {
+                PantallaRutinasGYM(contenedor = contenedor)
+            }
+            composable(RutasSegundoNivelGYM.SESIONES) {
+                PantallaSesionesGYM(contenedor = contenedor)
             }
         }
     }

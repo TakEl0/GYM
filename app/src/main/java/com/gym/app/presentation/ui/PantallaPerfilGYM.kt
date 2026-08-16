@@ -1,8 +1,11 @@
 /**
  * @file PantallaPerfilGYM.kt
  * @brief Pantalla de perfil de usuario de la aplicación GYM en Jetpack Compose.
- * Muestra un resumen básico del perfil (correo de la sesión activa) y ofrece el
- * botón de "Cerrar sesión" que invoca al caso de uso `CerrarSesionCasoUso`.
+ * Muestra un resumen básico del perfil (nombre derivado del correo y correo de
+ * la sesión activa) y ofrece el botón de "Cerrar sesión" que invoca al caso de
+ * uso `CerrarSesionCasoUso`. El nombre completo del usuario llegará cuando el
+ * perfil sincronizado esté disponible; mientras tanto se emplea el prefijo del
+ * correo como marcador temporal.
  */
 package com.gym.app.presentation.ui
 
@@ -52,10 +55,12 @@ import kotlinx.coroutines.launch
 
 /**
  * @brief Pantalla de perfil de usuario de GYM.
- * Muestra el correo asociado a la sesión activa (si está disponible) y el botón
- * de cierre de sesión. Al pulsarlo se invoca `CerrarSesionCasoUso` y, una vez
- * cerrada la sesión, el flujo reactivo de `EstadoSesion` hace que la navegación
- * principal regrese automáticamente a la pantalla de autenticación.
+ * Muestra el nombre derivado del correo (marcador temporal hasta que el perfil
+ * completo se sincronice), el correo asociado a la sesión activa (si está
+ * disponible) y el botón de cierre de sesión. Al pulsarlo se invoca
+ * `CerrarSesionCasoUso` y, una vez cerrada la sesión, el flujo reactivo de
+ * `EstadoSesion` hace que la navegación principal regrese automáticamente a la
+ * pantalla de autenticación.
  * @param contenedor Contenedor de dependencias de la aplicación.
  */
 @Composable
@@ -65,6 +70,9 @@ fun PantallaPerfilGYM(contenedor: ContenedorDependencias) {
     val correoSesion = remember {
         contenedor.obtenerSesionActualCasoUso.ejecutar()?.user?.email
     }
+    // Nombre de pila derivado del correo como marcador temporal mientras el
+    // perfil completo no está sincronizado desde el backend.
+    val nombreSesion = remember(correoSesion) { derivarNombreDesdeEmail(correoSesion) }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
         Column(
@@ -87,7 +95,10 @@ fun PantallaPerfilGYM(contenedor: ContenedorDependencias) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(20.dp))
-            TarjetaDatosUsuario(correoSesion = correoSesion)
+            TarjetaDatosUsuario(
+                correoSesion = correoSesion,
+                nombreUsuario = nombreSesion
+            )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {
@@ -131,10 +142,13 @@ fun PantallaPerfilGYM(contenedor: ContenedorDependencias) {
 
 /**
  * @brief Tarjeta con los datos básicos del usuario autenticado.
+ * El nombre mostrado es un marcador temporal derivado del correo; el nombre
+ * completo llegará cuando el perfil sincronizado esté disponible.
  * @param correoSesion Correo electrónico de la sesión activa (puede ser null).
+ * @param nombreUsuario Nombre derivado del correo (puede ser null).
  */
 @Composable
-private fun TarjetaDatosUsuario(correoSesion: String?) {
+private fun TarjetaDatosUsuario(correoSesion: String?, nombreUsuario: String?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -163,7 +177,7 @@ private fun TarjetaDatosUsuario(correoSesion: String?) {
             Spacer(modifier = Modifier.size(16.dp))
             Column {
                 Text(
-                    text = "Usuario GYM",
+                    text = nombreUsuario ?: "Usuario GYM",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
@@ -176,4 +190,18 @@ private fun TarjetaDatosUsuario(correoSesion: String?) {
             }
         }
     }
+}
+
+/**
+ * @brief Deriva un nombre de pila a partir del correo de la sesión activa.
+ * Se emplea como marcador temporal mientras el perfil completo se sincroniza
+ * desde el backend; si el correo no está disponible devuelve null.
+ * @param email Correo electrónico de la sesión (puede ser null).
+ * @return Nombre con la primera letra en mayúscula, o null si no hay correo.
+ */
+private fun derivarNombreDesdeEmail(email: String?): String? {
+    if (email.isNullOrBlank()) return null
+    val prefijo = email.substringBefore('@').trim()
+    if (prefijo.isEmpty()) return null
+    return prefijo.replaceFirstChar { if (it.isLowerCase()) it.uppercase() else it.toString() }
 }

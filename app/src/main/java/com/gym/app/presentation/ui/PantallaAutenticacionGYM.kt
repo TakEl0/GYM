@@ -25,10 +25,13 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.AlternateEmail
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -38,6 +41,9 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,6 +51,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -183,6 +190,9 @@ private fun indiceDelModo(modo: ModoAutenticacion): Int =
 
 /**
  * @brief Formulario de autenticación con campos, errores y botón principal.
+ * El campo de contraseña incluye un icono conmutador que permite mostrar u
+ * ocultar el texto introducido (alternando entre `PasswordVisualTransformation`
+ * y `VisualTransformation.None`) para ambos modos (inicio de sesión y registro).
  * @param estado Estado inmutable de la autenticación.
  * @param onEmailChanged Callback al editar el campo de correo.
  * @param onPasswordChanged Callback al editar el campo de contraseña.
@@ -197,6 +207,8 @@ private fun FormularioAutenticacion(
     onNombreChanged: (String) -> Unit,
     onAccionPrincipal: () -> Unit
 ) {
+    // Estado local que controla si el texto de la contraseña es visible.
+    var contrasenaVisible by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = estado.email,
         onValueChange = onEmailChanged,
@@ -252,7 +264,33 @@ private fun FormularioAutenticacion(
         label = { Text("Contraseña") },
         placeholder = { Text("Mínimo 8 caracteres") },
         singleLine = true,
-        visualTransformation = PasswordVisualTransformation(),
+        visualTransformation = if (contrasenaVisible) {
+            VisualTransformation.None
+        } else {
+            PasswordVisualTransformation()
+        },
+        trailingIcon = {
+            // Botón conmutador de visibilidad: "Mostrar contraseña" cuando el
+            // texto está oculto y "Ocultar contraseña" cuando está visible.
+            IconButton(
+                onClick = { contrasenaVisible = !contrasenaVisible },
+                modifier = Modifier.testTag("botonAlternarContrasena")
+            ) {
+                Icon(
+                    imageVector = if (contrasenaVisible) {
+                        Icons.Filled.VisibilityOff
+                    } else {
+                        Icons.Filled.Visibility
+                    },
+                    contentDescription = if (contrasenaVisible) {
+                        "Ocultar contraseña"
+                    } else {
+                        "Mostrar contraseña"
+                    },
+                    tint = AzulSecundario
+                )
+            }
+        },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Filled.Lock,

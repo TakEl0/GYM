@@ -1,12 +1,15 @@
 /**
  * @file PantallaDashboardGYM.kt
  * @brief Panel de control (Dashboard) de la aplicación GYM en Jetpack Compose.
- * Muestra el resumen diario del usuario: saludo, rutina de hoy con progreso,
- * contadores semanales y accesos rápidos a Entrenamiento y Nutrición.
+ * Muestra el saludo con la fecha real, el resumen diario, los contadores
+ * semanales y los accesos rápidos a Entrenamiento y Nutrición. Todos los datos
+ * provienen del estado reactivo del ViewModel o de la sesión real; no se
+ * muestran datos inventados ni fijos.
  */
 package com.gym.app.presentation.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,12 +27,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.FoodBank
+import androidx.compose.material.icons.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -55,18 +60,36 @@ import com.gym.app.presentation.ui.theme.CianAcento
 import com.gym.app.presentation.ui.theme.SuperficieElevada
 import com.gym.app.presentation.ui.theme.SuperficieOscura
 import com.gym.app.presentation.viewmodel.DashboardViewModel
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * @brief Pantalla principal del panel de control de GYM.
  * Crea el ViewModel (inyectando el repositorio real desde el contenedor de
  * dependencias) y muestra el estado reactivo con las distintas tarjetas
  * de resumen, manteniendo toda la lógica de negocio en la capa de dominio.
+ * El saludo se muestra de inmediato ("¡Hola!") sin bloquear la interfaz; si la
+ * sesión activa expone un correo, se deriva el nombre del usuario como
+ * marcador temporal hasta que el perfil completo esté sincronizado.
  * @param contenedor Contenedor de dependencias de la aplicación.
+ * @param alNavegar Acción de navegación por ruta para los accesos rápidos
+ * (p. ej. "nutricion", "lista_compra", "gimnasio", "rutinas" o "sesiones").
+ * Por defecto no hace nada.
  */
 @Composable
-fun PantallaDashboardGYM(contenedor: ContenedorDependencias) {
+fun PantallaDashboardGYM(
+    contenedor: ContenedorDependencias,
+    alNavegar: (String) -> Unit = {}
+) {
     val viewModel: DashboardViewModel = viewModel { DashboardViewModel(contenedor) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+
+    // Correo de la sesión activa (si existe) y nombre derivado como marcador.
+    val correoSesion = remember {
+        contenedor.obtenerSesionActualCasoUso.ejecutar()?.user?.email
+    }
+    val nombreSesion = remember(correoSesion) { derivarNombreDesdeEmail(correoSesion) }
 
     LaunchedEffect(Unit) {
         viewModel.cargarDatos()
@@ -83,13 +106,19 @@ fun PantallaDashboardGYM(contenedor: ContenedorDependencias) {
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(8.dp))
-            CabeceraBienvenida()
+            CabeceraBienvenida(nombreUsuario = nombreSesion)
             Spacer(modifier = Modifier.height(20.dp))
             TarjetaResumenDiario()
             Spacer(modifier = Modifier.height(16.dp))
-            FilaMetricasSemana(estado.sesionesCompletadas, estado.totalSesionesSemana)
+            FilaMetricasSemana(
+                sesionesCompletadas = estado.sesionesCompletadas,
+                totalSesiones = estado.totalSesionesSemana,
+                entrenamientoDeHoy = estado.entrenamientoDeHoy
+            )
             Spacer(modifier = Modifier.height(16.dp))
-            AccesosRapidos()
+            AccesosRapidos(onNavegar = alNavegar)
+            Spacer(modifier = Modifier.height(12.dp))
+            AccesosAvanzados(onNavegar = alNavegar)
             Spacer(modifier = Modifier.height(16.dp))
             estado.entrenamientoDeHoy?.let { entrenamiento ->
                 TarjetaProximaRutina(entrenamiento)
@@ -102,10 +131,14 @@ fun PantallaDashboardGYM(contenedor: ContenedorDependencias) {
 }
 
 /**
- * @brief Cabecera con el saludo y el nombre del usuario.
+ * @brief Cabecera con el saludo genérico, la fecha real de hoy y, si está
+ * disponible, el nombre del usuario derivado del correo de la sesión.
+ * Muestra siempre "¡Hola!" de forma inmediata; el avatar circular solo aparece
+ * cuando existe un nombre derivado que representar con su inicial.
+ * @param nombreUsuario Nombre derivado de la sesión (puede ser null).
  */
 @Composable
-private fun CabeceraBienvenida() {
+private fun CabeceraBienvenida(nombreUsuario: String?) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -113,35 +146,44 @@ private fun CabeceraBienvenida() {
     ) {
         Column {
             Text(
-                text = "Hola, Alex",
+                text = if (nombreUsuario.isNullOrBlank()) {
+                    "¡Hola!"
+                } else {
+                    "¡Hola! $nombreUsuario"
+                },
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Lunes, 16 de agosto",
+                text = formatearFechaActual(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .background(AzulPrimario, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "A",
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
+        if (!nombreUsuario.isNullOrBlank()) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(AzulPrimario, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = nombreUsuario.take(1).uppercase(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
 
 /**
- * @brief Tarjeta hero con el resumen diario y su progreso.
- * Utiliza un gradiente azul profundo y muestra un anillo de progreso.
+ * @brief Tarjeta hero con el resumen diario.
+ * Utiliza un gradiente azul profundo y muestra un estado vacío elegante mientras
+ * no existan datos reales de nutrición (el ViewModel de nutrición se conectará
+ * en una oleada posterior). No se muestran kilocalorías ni porcentajes fijos.
  */
 @Composable
 private fun TarjetaResumenDiario() {
@@ -174,31 +216,29 @@ private fun TarjetaResumenDiario() {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "1.680 / 2.200 kcal",
-                        style = MaterialTheme.typography.headlineMedium,
+                        text = "Sin datos de nutrición todavía",
+                        style = MaterialTheme.typography.titleMedium,
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "76% del objetivo calórico",
+                        text = "Registra tus comidas o importa tu dieta",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.9f)
                     )
                 }
-                Box(contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        progress = { 0.76f },
-                        modifier = Modifier.size(72.dp),
-                        color = Color.White,
-                        trackColor = Color.White.copy(alpha = 0.25f),
-                        strokeWidth = 7.dp
-                    )
-                    Text(
-                        text = "76%",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .background(Color.White.copy(alpha = 0.14f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Restaurant,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
@@ -210,9 +250,14 @@ private fun TarjetaResumenDiario() {
  * @brief Fila con las métricas de la semana.
  * @param sesionesCompletadas Sesiones completadas esta semana.
  * @param totalSesiones Total de sesiones planificadas.
+ * @param entrenamientoDeHoy Rutina programada para hoy (puede ser null).
  */
 @Composable
-private fun FilaMetricasSemana(sesionesCompletadas: Int, totalSesiones: Int) {
+private fun FilaMetricasSemana(
+    sesionesCompletadas: Int,
+    totalSesiones: Int,
+    entrenamientoDeHoy: Entrenamiento?
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -220,7 +265,7 @@ private fun FilaMetricasSemana(sesionesCompletadas: Int, totalSesiones: Int) {
         TarjetaMetrica(
             icono = Icons.Filled.Bolt,
             titulo = "Sesión hoy",
-            valor = "Push A",
+            valor = entrenamientoDeHoy?.nombre ?: "Sin sesión",
             colorIcono = CianAcento,
             modifier = Modifier.weight(1f)
         )
@@ -281,9 +326,10 @@ private fun TarjetaMetrica(
 
 /**
  * @brief Atajos rápidos a las secciones de Entrenamiento y Nutrición.
+ * @param onNavegar Acción de navegación por ruta.
  */
 @Composable
-private fun AccesosRapidos() {
+private fun AccesosRapidos(onNavegar: (String) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -292,22 +338,80 @@ private fun AccesosRapidos() {
             icono = Icons.Filled.FitnessCenter,
             titulo = "Entrenamiento",
             colorFondo = AzulPrimario,
+            onClick = { onNavegar(RutasSegundoNivelGYM.RUTINAS) },
             modifier = Modifier.weight(1f)
         )
         TarjetaAcceso(
             icono = Icons.Filled.Restaurant,
             titulo = "Nutrición",
             colorFondo = CianAcento,
+            onClick = { onNavegar(DestinoGYM.NUTRICION.ruta) },
             modifier = Modifier.weight(1f)
         )
     }
 }
 
 /**
- * @brief Tarjeta de acceso rápido con fondo de color.
+ * @brief Accesos avanzados a las pantallas de segundo nivel: Lista de la compra,
+ * Gimnasio, Rutinas e Historial de sesiones.
+ * @param onNavegar Acción de navegación por ruta.
+ */
+@Composable
+private fun AccesosAvanzados(onNavegar: (String) -> Unit) {
+    Text(
+        text = "Herramientas",
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onBackground,
+        fontWeight = FontWeight.SemiBold
+    )
+    Spacer(modifier = Modifier.height(10.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        TarjetaAcceso(
+            icono = Icons.Filled.ShoppingCart,
+            titulo = "Lista de la compra",
+            colorFondo = SuperficieOscura,
+            onClick = { onNavegar(RutasSegundoNivelGYM.LISTA_COMPRA) },
+            modifier = Modifier.weight(1f)
+        )
+        TarjetaAcceso(
+            icono = Icons.Filled.FitnessCenter,
+            titulo = "Gimnasio",
+            colorFondo = SuperficieOscura,
+            onClick = { onNavegar(RutasSegundoNivelGYM.GIMNASIO) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        TarjetaAcceso(
+            icono = Icons.Filled.FormatListBulleted,
+            titulo = "Rutinas",
+            colorFondo = SuperficieOscura,
+            onClick = { onNavegar(RutasSegundoNivelGYM.RUTINAS) },
+            modifier = Modifier.weight(1f)
+        )
+        TarjetaAcceso(
+            icono = Icons.Filled.History,
+            titulo = "Historial de sesiones",
+            colorFondo = SuperficieOscura,
+            onClick = { onNavegar(RutasSegundoNivelGYM.SESIONES) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+/**
+ * @brief Tarjeta de acceso rápido con fondo de color y acción de navegación.
  * @param icono Icono del acceso.
  * @param titulo Nombre del acceso.
  * @param colorFondo Color de fondo de la tarjeta.
+ * @param onClick Acción al pulsar la tarjeta.
  * @param modifier Modificador de la tarjeta.
  */
 @Composable
@@ -315,10 +419,11 @@ private fun TarjetaAcceso(
     icono: ImageVector,
     titulo: String,
     colorFondo: Color,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = colorFondo)
     ) {
@@ -332,7 +437,7 @@ private fun TarjetaAcceso(
                 tint = Color.White,
                 modifier = Modifier.size(24.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.size(8.dp))
             Text(
                 text = titulo,
                 style = MaterialTheme.typography.titleMedium,
@@ -393,7 +498,9 @@ private fun TarjetaProximaRutina(entrenamiento: Entrenamiento) {
 }
 
 /**
- * @brief Tarjeta con las próximas comidas del plan del nutricionista.
+ * @brief Tarjeta con las comidas del día.
+ * Muestra un estado vacío elegante mientras el ViewModel de nutrición no esté
+ * conectado: no se muestran comidas ni macronutrientes inventados.
  */
 @Composable
 private fun TarjetaProximasComidas() {
@@ -409,73 +516,65 @@ private fun TarjetaProximasComidas() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
-            FilaComida(
-                icono = Icons.Filled.FoodBank,
-                nombre = "Desayuno",
-                hora = "08:00",
-                macros = "P 40g · C 55g · G 15g"
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            FilaComida(
-                icono = Icons.Filled.Restaurant,
-                nombre = "Comida",
-                hora = "14:00",
-                macros = "P 45g · C 70g · G 20g"
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(SuperficieElevada, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Restaurant,
+                        contentDescription = null,
+                        tint = AzulSecundario,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.size(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Sin comidas registradas hoy",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "Tu plan de comidas aparecerá aquí",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
 
 /**
- * @brief Fila individual de una comida del plan.
- * @param icono Icono representativo de la comida.
- * @param nombre Nombre de la comida.
- * @param hora Hora prevista de la comida.
- * @param macros Resumen de macronutrientes de la comida.
+ * @brief Deriva un nombre de pila a partir del correo de la sesión activa.
+ * Se emplea como marcador temporal mientras el perfil completo se sincroniza
+ * desde el backend; si el correo no está disponible devuelve null.
+ * @param email Correo electrónico de la sesión (puede ser null).
+ * @return Nombre con la primera letra en mayúscula, o null si no hay correo.
  */
-@Composable
-private fun FilaComida(
-    icono: ImageVector,
-    nombre: String,
-    hora: String,
-    macros: String
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(SuperficieElevada, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icono,
-                contentDescription = nombre,
-                tint = AzulSecundario,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(modifier = Modifier.size(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = nombre,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = macros,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Text(
-            text = hora,
-            style = MaterialTheme.typography.titleMedium,
-            color = AzulSecundario,
-            fontWeight = FontWeight.Medium
-        )
-    }
+private fun derivarNombreDesdeEmail(email: String?): String? {
+    if (email.isNullOrBlank()) return null
+    val prefijo = email.substringBefore('@').trim()
+    if (prefijo.isEmpty()) return null
+    return prefijo.replaceFirstChar { if (it.isLowerCase()) it.uppercase() else it.toString() }
+}
+
+/**
+ * @brief Formatea la fecha actual en español (p. ej. "lunes, 16 de agosto").
+ * Utiliza `java.time` con locale de España; el desugaring del proyecto permite
+ * usarlo en versiones antiguas de Android (minSdk 24).
+ * @return Fecha actual formateada en español con la primera letra en mayúscula.
+ */
+private fun formatearFechaActual(): String {
+    val fecha = LocalDate.now()
+    val formateador = DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", Locale("es", "ES"))
+    val texto = fecha.format(formateador)
+    return texto.replaceFirstChar { if (it.isLowerCase()) it.uppercase() else it.toString() }
 }
