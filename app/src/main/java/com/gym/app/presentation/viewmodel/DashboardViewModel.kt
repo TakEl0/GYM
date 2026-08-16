@@ -9,6 +9,7 @@ package com.gym.app.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gym.app.data.repository.RepositorioEntrenamientoFake
+import com.gym.app.di.ContenedorDependencias
 import com.gym.app.domain.model.Entrenamiento
 import com.gym.app.domain.repository.RepositorioEntrenamiento
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,6 +46,13 @@ data class EstadoDashboard(
 class DashboardViewModel(
     private val repositorioEntrenamiento: RepositorioEntrenamiento = RepositorioEntrenamientoFake()
 ) : ViewModel() {
+
+    /**
+     * @brief Constructor secundario que resuelve el repositorio real de
+     * entrenamientos desde el [ContenedorDependencias] (inyección manual).
+     * @param contenedor Contenedor de dependencias de la aplicación.
+     */
+    constructor(contenedor: ContenedorDependencias) : this(contenedor.repositorioEntrenamiento)
 
     private val _estado = MutableStateFlow(EstadoDashboard())
     val estado: StateFlow<EstadoDashboard> = _estado.asStateFlow()

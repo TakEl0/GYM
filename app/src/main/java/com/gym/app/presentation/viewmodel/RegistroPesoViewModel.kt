@@ -9,6 +9,7 @@ package com.gym.app.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gym.app.data.repository.RepositorioPesoFake
+import com.gym.app.di.ContenedorDependencias
 import com.gym.app.domain.model.RegistroPeso
 import com.gym.app.domain.repository.RepositorioPeso
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +53,13 @@ data class EstadoRegistroPeso(
 class RegistroPesoViewModel(
     private val repositorioPeso: RepositorioPeso = RepositorioPesoFake()
 ) : ViewModel() {
+
+    /**
+     * @brief Constructor secundario que resuelve el repositorio real de peso
+     * desde el [ContenedorDependencias] (inyección manual).
+     * @param contenedor Contenedor de dependencias de la aplicación.
+     */
+    constructor(contenedor: ContenedorDependencias) : this(contenedor.repositorioPeso)
 
     private val _estado = MutableStateFlow(EstadoRegistroPeso())
     val estado: StateFlow<EstadoRegistroPeso> = _estado.asStateFlow()

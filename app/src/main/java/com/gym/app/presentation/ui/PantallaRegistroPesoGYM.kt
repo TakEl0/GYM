@@ -47,6 +47,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gym.app.di.ContenedorDependencias
 import com.gym.app.domain.model.RegistroPeso
 import com.gym.app.presentation.ui.theme.AzulPrimario
 import com.gym.app.presentation.ui.theme.AzulSecundario
@@ -59,12 +60,14 @@ import com.gym.app.presentation.viewmodel.RegistroPesoViewModel
 
 /**
  * @brief Pantalla de registro de peso de GYM.
- * Crea el ViewModel y muestra el formulario de alta junto con el historial
+ * Crea el ViewModel (inyectando el repositorio real desde el contenedor de
+ * dependencias) y muestra el formulario de alta junto con el historial
  * de mediciones del usuario, delegando la lógica en la capa de dominio.
+ * @param contenedor Contenedor de dependencias de la aplicación.
  */
 @Composable
-fun PantallaRegistroPesoGYM() {
-    val viewModel: RegistroPesoViewModel = viewModel()
+fun PantallaRegistroPesoGYM(contenedor: ContenedorDependencias) {
+    val viewModel: RegistroPesoViewModel = viewModel { RegistroPesoViewModel(contenedor) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {

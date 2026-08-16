@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gym.app.di.ContenedorDependencias
 import com.gym.app.domain.model.Entrenamiento
 import com.gym.app.presentation.ui.theme.AzulPrimario
 import com.gym.app.presentation.ui.theme.AzulSecundario
@@ -57,12 +58,14 @@ import com.gym.app.presentation.viewmodel.DashboardViewModel
 
 /**
  * @brief Pantalla principal del panel de control de GYM.
- * Crea el ViewModel y muestra el estado reactivo con las distintas tarjetas
+ * Crea el ViewModel (inyectando el repositorio real desde el contenedor de
+ * dependencias) y muestra el estado reactivo con las distintas tarjetas
  * de resumen, manteniendo toda la lógica de negocio en la capa de dominio.
+ * @param contenedor Contenedor de dependencias de la aplicación.
  */
 @Composable
-fun PantallaDashboardGYM() {
-    val viewModel: DashboardViewModel = viewModel()
+fun PantallaDashboardGYM(contenedor: ContenedorDependencias) {
+    val viewModel: DashboardViewModel = viewModel { DashboardViewModel(contenedor) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
@@ -372,13 +375,12 @@ private fun TarjetaProximaRutina(entrenamiento: Entrenamiento) {
             )
             Spacer(modifier = Modifier.height(12.dp))
             LinearProgressIndicator(
-                progress = { entrenamiento.progresoPorcentaje / 100f },
+                progress = entrenamiento.progresoPorcentaje / 100f,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp),
                 color = AzulPrimario,
-                trackColor = SuperficieElevada,
-                drawStopIndicator = {}
+                trackColor = SuperficieElevada
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
