@@ -1,0 +1,20 @@
+# Archivos locales y secretos (nunca versionar)
+local.properties
+*.jks
+*.keystore
+.env
+.env.*
+
+# Carpetas de compilación de Gradle
+.gradle/
+build/
+app/build/
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Capturas y artefactos temporales
+*.apk
+*.aab
