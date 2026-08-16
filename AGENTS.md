@@ -22,15 +22,15 @@ Este archivo proporciona instrucciones clave, reglas de gobernanza, directrices 
 ## 2. Orquestación de Agentes y Gobernanza
 
 ### 2.1 Jerarquía y Roles de Agentes
-1. **Agente Orquestador (`orquestador`)** [Modelo: `openrouter/deepseek/deepseek-chat`]:
+1. **Agente Orquestador (`orquestador`)** [Modelo: `opencode/deepseek-v4-flash-free`]:
    - Supervisa el progreso del proyecto, desglosa las peticiones del usuario en unidades de trabajo discretas y asigna tareas a subagentes especializados.
-2. **Agente Analista / Auditor (`analista`)** [Modelo: `openrouter/meta-llama/llama-3.3-70b-instruct:free`]:
+2. **Agente Analista / Auditor (`analista`)** [Modelo: `google/gemini-3.5-flash-lite`]:
    - Agente de revisión especializado responsable de auditar la calidad del código, el cumplimiento de la arquitectura y la seguridad.
 3. **Subagentes Especializados**:
-   - **`subagente-ui`** [Modelo: `openrouter/qwen/qwen-2.5-72b-instruct:free`]: Especializado en Jetpack Compose, diseño visual y validación con `opendesign`.
-   - **`subagente-dominio`** [Modelo: `openrouter/deepseek/deepseek-chat`]: Especializado en lógica de negocio, Clean Architecture y casos de uso.
-   - **`subagente-datos`** [Modelo: `openrouter/mistralai/mistral-small-24b-instruct-2501:free`]: Especializado en Room, API, repositorios y procesamiento de PDF (dietas de nutricionistas).
-   - **`subagente-seguridad`** [Modelo: `openrouter/meta-llama/llama-3.3-70b-instruct:free`]: Especializado en KeyStore, almacenamiento cifrado y auditoría de secretos.
+   - **`subagente-ui`** [Modelo: `google/gemini-3.5-flash-lite`]: Especializado en Jetpack Compose, diseño visual y validación con `opendesign`.
+   - **`subagente-dominio`** [Modelo: `opencode/deepseek-v4-flash-free`]: Especializado en lógica de negocio, Clean Architecture y casos de uso.
+    - **`subagente-datos`** [Modelo: `google/gemini-3.5-flash-lite`]: Especializado en Room, API, repositorios y procesamiento de PDF (dietas de nutricionistas).
+   - **`subagente-seguridad`** [Modelo: `google/gemini-3.5-flash-lite`]: Especializado en KeyStore, almacenamiento cifrado y auditoría de secretos.
    - **`subagente-testing`** [Modelo: `google/gemini-3.5-flash-lite`]: Especializado en pruebas unitarias, UI testing y bucles de verificación (`./gradlew test lint`).
 
 ### 2.2 Gobernanza y Documentación
@@ -60,3 +60,9 @@ Este archivo proporciona instrucciones clave, reglas de gobernanza, directrices 
 - **Sincronización con GitHub**: Enviar los cambios verificados al repositorio remoto de GitHub regularmente.
 - **Bucles de Verificación**:
    - Ejecutar comprobaciones de linter, pruebas unitarias y compilación (`./gradlew test`, `./gradlew lint`) antes de finalizar cualquier funcionalidad importante.
+
+---
+
+## 6. Salvoconducto y Protocolo de Fallback Automático
+- **Límites de Cuota / Rate Limits**: Si un agente o subagente alcanza el límite de peticiones (rate limit), cuota agotada o error de API con su modelo asignado, se activa automáticamente el **salvoconducto de fallback** re-enrutando la solicitud hacia el modelo de respaldo robusto (`google/gemini-3.5-flash-lite`).
+- **Continuidad Operativa**: Ninguna tarea debe detenerse por saturación o errores de proveedor; el sistema cambiará de modelo y continuará trabajando de forma autónoma.
