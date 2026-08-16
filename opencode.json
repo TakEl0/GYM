@@ -15,14 +15,11 @@
     "opendesign": {
       "type": "local",
       "command": [
-        "npx",
-        "-y",
-        "open-design-mcp"
+        "node",
+        ".opencode/mcp/opendesign-launcher.js"
       ],
       "enabled": true,
-      "environment": {
-        "OD_DAEMON_URL": "http://localhost:3000"
-      }
+      "environment": {}
     },
     "context7": {
       "type": "local",
