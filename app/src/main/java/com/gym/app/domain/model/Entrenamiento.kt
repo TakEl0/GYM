@@ -28,7 +28,9 @@ data class Entrenamiento(
     val totalEjercicios: Int,
     val duracionMinutos: Int,
     val completo: Boolean,
-    val fecha: Long = 0L
+    val fecha: Long = 0L,
+    val ejercicios: List<DetalleEjercicio> = emptyList(),
+    val observaciones: String = ""
 ) {
 
     /**
