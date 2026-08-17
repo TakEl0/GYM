@@ -2,8 +2,8 @@
  * @file GimnasioViewModel.kt
  * @brief ViewModel de la pantalla de Gimnasio de la aplicación GYM.
  * Observa el gimnasio del usuario y el catálogo de ejercicios, permite guardar el
- * gimnasio, registrar nuevas máquinas y consultar alternativas cuando una máquina
- * no está disponible.
+ * gimnasio, importar su maquinaria desde el [CatalogoMaquinaria] y consultar
+ * alternativas cuando una máquina no está disponible.
  */
 package com.gym.app.presentation.viewmodel
 
@@ -12,15 +12,16 @@ import androidx.lifecycle.viewModelScope
 import com.gym.app.data.repository.RepositorioEjercicioFake
 import com.gym.app.data.repository.RepositorioGimnasioFake
 import com.gym.app.di.ContenedorDependencias
+import com.gym.app.domain.model.CatalogoMaquinaria
 import com.gym.app.domain.model.Ejercicio
 import com.gym.app.domain.model.Gimnasio
-import com.gym.app.domain.model.Maquina
 import com.gym.app.domain.repository.RepositorioEjercicio
 import com.gym.app.domain.repository.RepositorioGimnasio
 import com.gym.app.domain.usecase.gimnasio.AlternativasMaquinaCasoUso
 import com.gym.app.domain.usecase.gimnasio.GuardarGimnasioCasoUso
-import com.gym.app.domain.usecase.gimnasio.RegistrarMaquinaCasoUso
 import java.util.UUID
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,28 +54,27 @@ data class EstadoGimnasio(
  * @brief Gestiona el estado de la pantalla de Gimnasio.
  *
  * Observa en paralelo el [Gimnasio] del usuario y el catálogo de [Ejercicio].
- * Las operaciones de guardado del gimnasio, registro de máquinas y consulta de
- * alternativas delegan en sus respectivos casos de uso, que se construyen
- * internamente sobre el repositorio de gimnasio inyectado para mantener la
- * coherencia de la fuente de datos.
+ * Las operaciones de guardado del gimnasio, importación de maquinaria desde el
+ * [CatalogoMaquinaria] y consulta de alternativas delegan en sus respectivos
+ * casos de uso, que se construyen internamente sobre el repositorio de gimnasio
+ * inyectado para mantener la coherencia de la fuente de datos.
  *
  * Constructores según el patrón del proyecto: primario inyectable (fakes por
  * defecto para pruebas) y secundario que resuelve las dependencias desde el
- * [ContenedorDependencias].
+ * [ContenedorDependencias]. El dispatcher de los casos de uso internos es
+ * inyectable para permitir pruebas deterministas con TestDispatcher.
  */
 class GimnasioViewModel(
     private val repositorioGimnasio: RepositorioGimnasio = RepositorioGimnasioFake(),
-    private val repositorioEjercicio: RepositorioEjercicio = RepositorioEjercicioFake()
+    private val repositorioEjercicio: RepositorioEjercicio = RepositorioEjercicioFake(),
+    private val dispatcherOperaciones: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
 
     /** Caso de uso de guardado del gimnasio, sobre el repositorio inyectado. */
-    private val guardarGimnasioCasoUso = GuardarGimnasioCasoUso(repositorioGimnasio)
-
-    /** Caso de uso de registro de máquinas, sobre el repositorio inyectado. */
-    private val registrarMaquinaCasoUso = RegistrarMaquinaCasoUso(repositorioGimnasio)
+    private val guardarGimnasioCasoUso = GuardarGimnasioCasoUso(repositorioGimnasio, dispatcherOperaciones)
 
     /** Caso de uso de alternativas de máquina, sobre el repositorio inyectado. */
-    private val alternativasMaquinaCasoUso = AlternativasMaquinaCasoUso(repositorioGimnasio)
+    private val alternativasMaquinaCasoUso = AlternativasMaquinaCasoUso(repositorioGimnasio, dispatcherOperaciones)
 
     /**
      * @brief Constructor secundario que resuelve las dependencias reales desde
@@ -140,14 +140,18 @@ class GimnasioViewModel(
     }
 
     /**
-     * @brief Registra una nueva máquina en el gimnasio.
+     * @brief Importa desde el [CatalogoMaquinaria] las máquinas seleccionadas al
+     * gimnasio del usuario.
+     *
      * Si el gimnasio aún no está configurado, se crea uno por defecto con el nombre
-     * genérico "Mi gimnasio" (marcador de configuración pendiente) que el usuario
-     * puede renombrar después desde el formulario de guardado.
-     * @param nombre Nombre de la máquina (no puede estar vacío).
-     * @param gruposMusculares Grupos musculares que trabaja la máquina.
+     * genérico "Mi gimnasio" que el usuario puede renombrar después desde el
+     * formulario de guardado. Las máquinas ya importadas con anterioridad se
+     * ignoran para evitar duplicados (el identificador del catálogo es estable).
+     *
+     * @param idsSeleccionados Identificadores de catálogo de las máquinas a importar.
      */
-    fun registrarMaquina(nombre: String, gruposMusculares: List<String>) {
+    fun importarMaquinasDelCatalogo(idsSeleccionados: List<String>) {
+        if (idsSeleccionados.isEmpty()) return
         viewModelScope.launch {
             val gimnasioActual = _estado.value.gimnasio
                 ?: Gimnasio(
@@ -155,16 +159,18 @@ class GimnasioViewModel(
                     nombre = "Mi gimnasio",
                     maquinas = emptyList()
                 )
-            val maquina = Maquina(
-                id = UUID.randomUUID().toString(),
-                nombre = nombre.trim(),
-                grupoMuscular = gruposMusculares.map { it.trim() }.filter { it.isNotEmpty() },
-                disponible = true
+            val idsExistentes = gimnasioActual.maquinas.map { it.id }.toSet()
+            val nuevasMaquinas = CatalogoMaquinaria.maquinas
+                .filter { it.id in idsSeleccionados && it.id !in idsExistentes }
+                .map { CatalogoMaquinaria.aMaquina(it) }
+            if (nuevasMaquinas.isEmpty()) return@launch
+            val gimnasioActualizado = gimnasioActual.copy(
+                maquinas = gimnasioActual.maquinas + nuevasMaquinas
             )
-            registrarMaquinaCasoUso.ejecutar(gimnasioActual, maquina)
+            guardarGimnasioCasoUso.ejecutar(gimnasioActualizado)
                 .onFailure { excepcion ->
                     _estado.update {
-                        it.copy(error = excepcion.message ?: "No se pudo registrar la máquina.")
+                        it.copy(error = excepcion.message ?: "No se pudieron importar las máquinas.")
                     }
                 }
         }

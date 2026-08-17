@@ -2,8 +2,9 @@
  * @file PantallaGimnasioGYM.kt
  * @brief Pantalla de Gimnasio de la aplicación GYM en Jetpack Compose.
  * Muestra el gimnasio configurado con su parque de máquinas, permite guardar el
- * gimnasio, registrar nuevas máquinas mediante un diálogo y consultar ejercicios
- * alternativos cuando una máquina no está disponible.
+ * gimnasio, IMPORTAR su maquinaria desde el [CatalogoMaquinaria] mediante un
+ * selector con checkboxes y consultar ejercicios alternativos cuando una máquina
+ * no está disponible.
  */
 package com.gym.app.presentation.ui
 
@@ -25,16 +26,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Yard
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -54,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gym.app.di.ContenedorDependencias
+import com.gym.app.domain.model.CatalogoMaquinaria
 import com.gym.app.domain.model.Gimnasio
 import com.gym.app.domain.model.Maquina
 import com.gym.app.presentation.ui.theme.AzulPrimario
@@ -140,9 +146,10 @@ fun PantallaGimnasioGYM(contenedor: ContenedorDependencias) {
     }
 
     if (mostrarDialogoMaquina) {
-        DialogoRegistrarMaquina(
-            onConfirmar = { nombre, grupos ->
-                viewModel.registrarMaquina(nombre, grupos)
+        DialogoImportarCatalogo(
+            maquinasExistentes = estado.gimnasio?.maquinas?.map { it.id }.orEmpty(),
+            onConfirmar = { idsSeleccionados ->
+                viewModel.importarMaquinasDelCatalogo(idsSeleccionados)
                 mostrarDialogoMaquina = false
             },
             onCancelar = { mostrarDialogoMaquina = false }
@@ -439,59 +446,191 @@ private fun IndicadorDisponibilidad(disponible: Boolean) {
 }
 
 /**
- * @brief Diálogo de registro de una nueva máquina del gimnasio.
- * @param onConfirmar Acción de confirmación con nombre y grupos musculares.
+ * @brief Diálogo de importación de maquinaria desde el [CatalogoMaquinaria].
+ *
+ * Muestra las máquinas del catálogo agrupadas por familia muscular, con un campo
+ * de búsqueda y casillas de verificación. Las máquinas ya importadas se muestran
+ * marcadas y deshabilitadas para evitar duplicados.
+ *
+ * @param maquinasExistentes Identificadores de máquinas ya registradas en el gimnasio.
+ * @param onConfirmar Acción de confirmación con los identificadores seleccionados.
  * @param onCancelar Acción de cancelación del diálogo.
  */
 @Composable
-private fun DialogoRegistrarMaquina(
-    onConfirmar: (nombre: String, gruposMusculares: List<String>) -> Unit,
+private fun DialogoImportarCatalogo(
+    maquinasExistentes: List<String>,
+    onConfirmar: (idsSeleccionados: List<String>) -> Unit,
     onCancelar: () -> Unit
 ) {
-    var nombre by remember { mutableStateOf("") }
-    var grupos by remember { mutableStateOf("") }
+    var busqueda by remember { mutableStateOf("") }
+    val seleccionadas = remember { mutableStateOf(setOf<String>()) }
+    val familias = remember { CatalogoMaquinaria.agruparPorFamilia() }
+
+    val filtradas = remember(busqueda) {
+        if (busqueda.isBlank()) {
+            familias
+        } else {
+            val termino = busqueda.trim().lowercase()
+            familias.mapValues { (_, lista) ->
+                lista.filter { entrada ->
+                    entrada.nombre.lowercase().contains(termino) ||
+                        entrada.grupoMuscular.any { it.lowercase().contains(termino) }
+                }
+            }.filterValues { it.isNotEmpty() }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onCancelar,
-        title = { Text("Añadir máquina") },
+        title = {
+            Text(
+                text = "Importar maquinaria",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
         text = {
             Column {
+                Text(
+                    text = "Selecciona las máquinas de tu gimnasio desde el catálogo. " +
+                        "Las ya importadas aparecen marcadas y no pueden duplicarse.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
-                    label = { Text("Nombre de la máquina") },
+                    value = busqueda,
+                    onValueChange = { busqueda = it },
+                    label = { Text("Buscar máquina o grupo muscular") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.Search,
+                            contentDescription = null,
+                            tint = AzulSecundario
+                        )
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = grupos,
-                    onValueChange = { grupos = it },
-                    label = { Text("Grupo muscular (separado por comas)") },
-                    placeholder = { Text("Ej. CUADRICEPS, GLUTEO") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                LazyColumn(
+                    modifier = Modifier.height(320.dp),
+                    contentPadding = PaddingValues(vertical = 4.dp)
+                ) {
+                    filtradas.forEach { (familia, maquinasFamilia) ->
+                        item(key = "cabecera-$familia") {
+                            Text(
+                                text = familia,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = AzulSecundario,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                        items(maquinasFamilia, key = { "maquina-${it.id}" }) { entrada ->
+                            FilaCatalogo(
+                                entrada = entrada,
+                                yaImportada = entrada.id in maquinasExistentes,
+                                seleccionada = entrada.id in seleccionadas.value,
+                                onSeleccion = { seleccion ->
+                                    seleccionadas.value = if (seleccion) {
+                                        seleccionadas.value + entrada.id
+                                    } else {
+                                        seleccionadas.value - entrada.id
+                                    }
+                                }
+                            )
+                        }
+                        item(key = "divisor-$familia") {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = {
-                    onConfirmar(
-                        nombre,
-                        grupos.split(',').map { it.trim() }.filter { it.isNotEmpty() }
-                    )
-                },
-                enabled = nombre.isNotBlank(),
+                onClick = { onConfirmar(seleccionadas.value.toList()) },
+                enabled = seleccionadas.value.isNotEmpty(),
                 colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario)
             ) {
-                Text("Guardar", color = Color.White)
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.size(6.dp))
+                Text(
+                    text = "Importar (${seleccionadas.value.size})",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onCancelar) { Text("Cancelar", color = AzulSecundario) }
         }
     )
+}
+
+/**
+ * @brief Fila del catálogo con la casilla de verificación de selección.
+ * @param entrada Máquina del catálogo representada.
+ * @param yaImportada Indica si la máquina ya está registrada (no seleccionable).
+ * @param seleccionada Indica si la casilla está marcada en la selección actual.
+ * @param onSeleccion Callback de cambio de selección (con el nuevo estado).
+ */
+@Composable
+private fun FilaCatalogo(
+    entrada: CatalogoMaquinaria.EntradaCatalogo,
+    yaImportada: Boolean,
+    seleccionada: Boolean,
+    onSeleccion: (Boolean) -> Unit
+) {
+    val colorFila = if (yaImportada) MaterialTheme.colorScheme.onSurfaceVariant
+    else MaterialTheme.colorScheme.onSurface
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = seleccionada || yaImportada,
+            onCheckedChange = { if (!yaImportada) onSeleccion(it) },
+            enabled = !yaImportada,
+            colors = androidx.compose.material3.CheckboxDefaults.colors(
+                checkedColor = AzulPrimario,
+                checkmarkColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.size(4.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = entrada.nombre,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colorFila,
+                fontWeight = if (yaImportada) FontWeight.Normal else FontWeight.Medium
+            )
+            Text(
+                text = entrada.grupoMuscular.joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (yaImportada) {
+            Text(
+                text = "Importada",
+                style = MaterialTheme.typography.labelSmall,
+                color = CianAcento
+            )
+        }
+    }
 }
 
 /**
