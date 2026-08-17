@@ -85,11 +85,28 @@ fun PantallaDashboardGYM(
     val viewModel: DashboardViewModel = viewModel { DashboardViewModel(contenedor) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
-    // Correo de la sesión activa (si existe) y nombre derivado como marcador.
-    val correoSesion = remember {
-        contenedor.obtenerSesionActualCasoUso.ejecutar()?.user?.email
+    // Correo e identificador de la sesión activa (si existe).
+    val sesionActiva = remember {
+        contenedor.obtenerSesionActualCasoUso.ejecutar()
     }
-    val nombreSesion = remember(correoSesion) { derivarNombreDesdeEmail(correoSesion) }
+    val correoSesion = sesionActiva?.user?.email
+    val usuarioId = sesionActiva?.user?.id
+
+    // Nombre real del usuario observado de forma reactiva desde el perfil
+    // completo (poblado al autenticarse). Si el perfil aún no está disponible,
+    // se usa como último recurso el nombre derivado del correo.
+    val flujoPerfil = remember(usuarioId) {
+        if (usuarioId.isNullOrBlank()) {
+            kotlinx.coroutines.flow.flowOf(null)
+        } else {
+            contenedor.obtenerPerfilCasoUso.ejecutar(usuarioId)
+        }
+    }
+    val perfilUsuario by flujoPerfil.collectAsStateWithLifecycle(initialValue = null)
+    val nombreSesion = remember(perfilUsuario, correoSesion) {
+        perfilUsuario?.nombre?.takeIf { it.isNotBlank() }
+            ?: derivarNombreDesdeEmail(correoSesion)
+    }
 
     LaunchedEffect(Unit) {
         viewModel.cargarDatos()

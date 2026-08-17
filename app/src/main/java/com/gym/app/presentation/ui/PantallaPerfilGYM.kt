@@ -1,11 +1,11 @@
 /**
  * @file PantallaPerfilGYM.kt
  * @brief Pantalla de perfil de usuario de la aplicación GYM en Jetpack Compose.
- * Muestra un resumen básico del perfil (nombre derivado del correo y correo de
- * la sesión activa) y ofrece el botón de "Cerrar sesión" que invoca al caso de
- * uso `CerrarSesionCasoUso`. El nombre completo del usuario llegará cuando el
- * perfil sincronizado esté disponible; mientras tanto se emplea el prefijo del
- * correo como marcador temporal.
+ * Muestra los datos reales del usuario (nombre y correo de la sesión activa),
+ * permite EDITAR el nombre y los objetivos nutricionales (peso objetivo, altura,
+ * edad, sexo, factor de actividad y objetivo) y ofrece el botón de "Cerrar sesión".
+ * Toda la lógica de negocio reside en el [PerfilViewModel] y en los casos de uso
+ * de la capa de dominio; no se muestran datos inventados.
  */
 package com.gym.app.presentation.ui
 
@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
@@ -32,11 +33,22 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,23 +56,25 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gym.app.di.ContenedorDependencias
+import com.gym.app.domain.model.PerfilUsuario
 import com.gym.app.presentation.ui.theme.AzulPrimario
 import com.gym.app.presentation.ui.theme.AzulSecundario
 import com.gym.app.presentation.ui.theme.SuperficieOscura
+import com.gym.app.presentation.viewmodel.CampoPerfil
+import com.gym.app.presentation.viewmodel.PerfilViewModel
 import kotlinx.coroutines.launch
 
 /**
  * @brief Pantalla de perfil de usuario de GYM.
- * Muestra el nombre derivado del correo (marcador temporal hasta que el perfil
- * completo se sincronice), el correo asociado a la sesión activa (si está
- * disponible) y el botón de cierre de sesión. Al pulsarlo se invoca
- * `CerrarSesionCasoUso` y, una vez cerrada la sesión, el flujo reactivo de
- * `EstadoSesion` hace que la navegación principal regrese automáticamente a la
- * pantalla de autenticación.
+ * Observa el perfil real del usuario mediante el [PerfilViewModel], permite
+ * editar el nombre y los objetivos nutricionales y cerrar la sesión.
  * @param contenedor Contenedor de dependencias de la aplicación.
  */
 @Composable
@@ -70,11 +84,44 @@ fun PantallaPerfilGYM(contenedor: ContenedorDependencias) {
     val correoSesion = remember {
         contenedor.obtenerSesionActualCasoUso.ejecutar()?.user?.email
     }
-    // Nombre de pila derivado del correo como marcador temporal mientras el
-    // perfil completo no está sincronizado desde el backend.
-    val nombreSesion = remember(correoSesion) { derivarNombreDesdeEmail(correoSesion) }
+    val usuarioId = remember {
+        contenedor.obtenerSesionActualCasoUso.ejecutar()?.user?.id ?: ""
+    }
+    val snackbarHost = remember { SnackbarHostState() }
 
-    Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
+    // El ViewModel se construye solo si disponemos de un identificador de usuario;
+    // de lo contrario se muestra la tarjeta con el correo y el cierre de sesión.
+    if (usuarioId.isBlank()) {
+        PerfilSinUsuario(
+            correoSesion = correoSesion,
+            cerrandoSesion = cerrandoSesion,
+            onCerrarSesion = {
+                cerrandoSesion = true
+                alcance.launch { contenedor.cerrarSesionCasoUso.ejecutar() }
+            }
+        )
+        return
+    }
+
+    val viewModel: PerfilViewModel = viewModel { PerfilViewModel(usuarioId, contenedor) }
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
+
+    // Notifica los mensajes temporales de éxito/error mediante Snackbar.
+    LaunchedEffect(estado.mensajeExito, estado.error) {
+        estado.mensajeExito?.let {
+            snackbarHost.showSnackbar(it)
+            viewModel.limpiarMensajes()
+        }
+        estado.error?.let {
+            snackbarHost.showSnackbar(it)
+            viewModel.limpiarMensajes()
+        }
+    }
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHost) }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -90,50 +137,98 @@ fun PantallaPerfilGYM(contenedor: ContenedorDependencias) {
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Tu cuenta y sesión en GYM",
+                text = "Tu cuenta, tus datos y tus objetivos",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(20.dp))
+
+            // Tarjeta con el nombre real (editable), alias (editable) y correo.
             TarjetaDatosUsuario(
                 correoSesion = correoSesion,
-                nombreUsuario = nombreSesion
+                nombreUsuario = estado.perfil?.nombre,
+                nombreEditado = estado.nombreEditado,
+                onNombreCambiado = viewModel::actualizarNombre,
+                aliasEditado = estado.aliasEditado,
+                onAliasCambiado = viewModel::actualizarAlias
             )
-            Spacer(modifier = Modifier.height(24.dp))
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Botón para guardar el nombre y el alias editados.
             Button(
+                onClick = viewModel::guardarPerfilCompleto,
+                enabled = !estado.guardando && estado.nombreEditado.isNotBlank(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario)
+            ) {
+                if (estado.guardando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Guardar nombre y alias")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Datos antropométricos y objetivos editables.
+            Text(
+                text = "Datos y objetivos",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Estos datos se usan para calcular tu metabolismo (Mifflin-St Jeor) y tus objetivos diarios.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            val perfil = estado.perfil
+            if (perfil == null) {
+                Text(
+                    text = "Cargando tu perfil…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                FormularioObjetivos(
+                    perfil = perfil,
+                    guardando = estado.guardando,
+                    onCampoCambiado = viewModel::actualizarCampo,
+                    onGuardar = viewModel::guardarObjetivos
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Cierre de sesión.
+            OutlinedButton(
                 onClick = {
                     cerrandoSesion = true
-                    alcance.launch {
-                        contenedor.cerrarSesionCasoUso.ejecutar()
-                    }
+                    alcance.launch { contenedor.cerrarSesionCasoUso.ejecutar() }
                 },
                 enabled = !cerrandoSesion,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario),
-                shape = RoundedCornerShape(12.dp)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
             ) {
-                if (cerrandoSesion) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        color = Color.White,
-                        strokeWidth = 2.5.dp
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Filled.Logout,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(
-                        text = "Cerrar sesión",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Filled.Logout,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(if (cerrandoSesion) "Cerrando sesión…" else "Cerrar sesión")
             }
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -141,14 +236,78 @@ fun PantallaPerfilGYM(contenedor: ContenedorDependencias) {
 }
 
 /**
- * @brief Tarjeta con los datos básicos del usuario autenticado.
- * El nombre mostrado es un marcador temporal derivado del correo; el nombre
- * completo llegará cuando el perfil sincronizado esté disponible.
- * @param correoSesion Correo electrónico de la sesión activa (puede ser null).
- * @param nombreUsuario Nombre derivado del correo (puede ser null).
+ * @brief Variante de la pantalla de perfil cuando no hay identificador de usuario.
+ * Muestra únicamente el correo y el cierre de sesión.
  */
 @Composable
-private fun TarjetaDatosUsuario(correoSesion: String?, nombreUsuario: String?) {
+private fun PerfilSinUsuario(
+    correoSesion: String?,
+    cerrandoSesion: Boolean,
+    onCerrarSesion: () -> Unit
+) {
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Perfil",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            TarjetaDatosUsuario(
+                correoSesion = correoSesion,
+                nombreUsuario = null,
+                nombreEditado = "",
+                onNombreCambiado = {},
+                aliasEditado = "",
+                onAliasCambiado = {}
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            OutlinedButton(
+                onClick = onCerrarSesion,
+                enabled = !cerrandoSesion,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Logout,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(if (cerrandoSesion) "Cerrando sesión…" else "Cerrar sesión")
+            }
+        }
+    }
+}
+
+/**
+ * @brief Tarjeta con el avatar, el nombre editable, el alias editable y el correo.
+ * @param correoSesion Correo electrónico de la sesión activa (puede ser null).
+ * @param nombreUsuario Nombre real del usuario observado del perfil (puede ser null).
+ * @param nombreEditado Texto actual del campo de edición del nombre.
+ * @param onNombreCambiado Callback al cambiar el texto del nombre.
+ * @param aliasEditado Texto actual del campo de edición del alias.
+ * @param onAliasCambiado Callback al cambiar el texto del alias.
+ */
+@Composable
+private fun TarjetaDatosUsuario(
+    correoSesion: String?,
+    nombreUsuario: String?,
+    nombreEditado: String,
+    onNombreCambiado: (String) -> Unit,
+    aliasEditado: String,
+    onAliasCambiado: (String) -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -157,35 +316,53 @@ private fun TarjetaDatosUsuario(correoSesion: String?, nombreUsuario: String?) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(52.dp)
-                    .background(AzulPrimario, CircleShape),
+                    .size(56.dp)
+                    .background(AzulSecundario, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = "Avatar del usuario",
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
+                val inicial = (nombreUsuario ?: "G").trim().firstOrNull()?.uppercase() ?: "G"
+                Text(
+                    text = inicial,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold
                 )
             }
             Spacer(modifier = Modifier.size(16.dp))
-            Column {
-                Text(
-                    text = nombreUsuario ?: "Usuario GYM",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold
-                )
+            Column(modifier = Modifier.weight(1f)) {
+                if (nombreEditado.isNotEmpty()) {
+                    OutlinedTextField(
+                        value = nombreEditado,
+                        onValueChange = onNombreCambiado,
+                        label = { Text("Nombre y apellidos") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Text(
+                        text = nombreUsuario ?: "Usuario GYM",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
                 Text(
                     text = correoSesion ?: "Sesión iniciada",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AzulSecundario
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = aliasEditado,
+                    onValueChange = onAliasCambiado,
+                    label = { Text("Alias (nombre de usuario)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -193,15 +370,144 @@ private fun TarjetaDatosUsuario(correoSesion: String?, nombreUsuario: String?) {
 }
 
 /**
- * @brief Deriva un nombre de pila a partir del correo de la sesión activa.
- * Se emplea como marcador temporal mientras el perfil completo se sincroniza
- * desde el backend; si el correo no está disponible devuelve null.
- * @param email Correo electrónico de la sesión (puede ser null).
- * @return Nombre con la primera letra en mayúscula, o null si no hay correo.
+ * @brief Formulario de objetivos y datos antropométricos del usuario.
+ * Muestra campos numéricos (peso, altura, edad) y selectores (sexo, factor de
+ * actividad y objetivo) conectados al estado del ViewModel.
+ * @param perfil Perfil actual del usuario.
+ * @param guardando Indica si hay una operación de guardado en curso.
+ * @param onCampoCambiado Callback al modificar un campo.
+ * @param onGuardar Callback para guardar los objetivos.
  */
-private fun derivarNombreDesdeEmail(email: String?): String? {
-    if (email.isNullOrBlank()) return null
-    val prefijo = email.substringBefore('@').trim()
-    if (prefijo.isEmpty()) return null
-    return prefijo.replaceFirstChar { if (it.isLowerCase()) it.uppercase() else it.toString() }
+@Composable
+private fun FormularioObjetivos(
+    perfil: PerfilUsuario,
+    guardando: Boolean,
+    onCampoCambiado: (CampoPerfil, String) -> Unit,
+    onGuardar: () -> Unit
+) {
+    Column {
+        CampoNumerico(
+            etiqueta = "Peso objetivo (kg)",
+            valor = perfil.pesoObjetivoKg?.toString().orEmpty(),
+            onValorCambiado = { onCampoCambiado(CampoPerfil.PESO, it) }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        CampoNumerico(
+            etiqueta = "Altura (cm)",
+            valor = perfil.alturaCm?.toString().orEmpty(),
+            onValorCambiado = { onCampoCambiado(CampoPerfil.ALTURA, it) }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        CampoNumerico(
+            etiqueta = "Edad (años)",
+            valor = perfil.edad?.toString().orEmpty(),
+            onValorCambiado = { onCampoCambiado(CampoPerfil.EDAD, it) }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        MenuDesplegable(
+            etiqueta = "Sexo",
+            opciones = listOf(PerfilUsuario.SEXO_HOMBRE, PerfilUsuario.SEXO_MUJER),
+            seleccion = perfil.sexo.orEmpty(),
+            onSeleccion = { onCampoCambiado(CampoPerfil.SEXO, it) }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        MenuDesplegable(
+            etiqueta = "Factor de actividad",
+            opciones = listOf("SEDENTARIO", "LIGERO", "MODERADO", "FUERTE"),
+            seleccion = perfil.factorActividad.orEmpty(),
+            onSeleccion = { onCampoCambiado(CampoPerfil.FACTOR_ACTIVIDAD, it) }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        MenuDesplegable(
+            etiqueta = "Objetivo nutricional",
+            opciones = listOf(
+                PerfilUsuario.OBJETIVO_VOLUMEN,
+                PerfilUsuario.OBJETIVO_DEFINICION,
+                PerfilUsuario.OBJETIVO_MANTENIMIENTO
+            ),
+            seleccion = perfil.objetivo.orEmpty(),
+            onSeleccion = { onCampoCambiado(CampoPerfil.OBJETIVO, it) }
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = onGuardar,
+            enabled = !guardando,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario)
+        ) {
+            if (guardando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Guardar objetivos")
+            }
+        }
+    }
+}
+
+/**
+ * @brief Campo de texto numérico con etiqueta para el formulario de objetivos.
+ */
+@Composable
+private fun CampoNumerico(
+    etiqueta: String,
+    valor: String,
+    onValorCambiado: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = valor,
+        onValueChange = onValorCambiado,
+        label = { Text(etiqueta) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+/**
+ * @brief Menú desplegable (ExposedDropdownMenuBox) para seleccionar entre opciones.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MenuDesplegable(
+    etiqueta: String,
+    opciones: List<String>,
+    seleccion: String,
+    onSeleccion: (String) -> Unit
+) {
+    var expandido by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expandido,
+        onExpandedChange = { expandido = !expandido }
+    ) {
+        OutlinedTextField(
+            value = seleccion,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(etiqueta) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandido) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor()
+        )
+        ExposedDropdownMenu(
+            expanded = expandido,
+            onDismissRequest = { expandido = false }
+        ) {
+            opciones.forEach { opcion ->
+                DropdownMenuItem(
+                    text = { Text(opcion) },
+                    onClick = {
+                        onSeleccion(opcion)
+                        expandido = false
+                    }
+                )
+            }
+        }
+    }
 }

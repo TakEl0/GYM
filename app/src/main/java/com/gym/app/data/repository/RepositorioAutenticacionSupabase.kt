@@ -6,6 +6,7 @@ package com.gym.app.data.repository
 
 import android.content.Context
 import com.gym.app.data.local.BaseDeDatosGYM
+import com.gym.app.data.local.entidad.EntidadPerfilUsuario
 import com.gym.app.data.local.entidad.EntidadUsuarioPerfil
 import com.gym.app.data.remote.ClienteSupabase
 import com.gym.app.data.remote.dto.DtoPerfilRemoto
@@ -41,6 +42,16 @@ class RepositorioAutenticacionSupabase(private val context: Context) : Repositor
                 client.postgrest["perfiles"].insert(perfilDto)
                 db.daoUsuarioPerfil().insertarPerfil(
                     EntidadUsuarioPerfil(id = userId, email = email, nombre = nombre, pesoObjetivoKg = null, createdAt = null, updatedAt = null)
+                )
+                // Puebla también el perfil completo (perfil_usuario) para que las
+                // pantallas muestren el nombre real del usuario en lugar de derivarlo
+                // del correo electrónico.
+                db.daoPerfilUsuario().insertar(
+                    EntidadPerfilUsuario(
+                        id = userId,
+                        email = email,
+                        nombre = nombre
+                    )
                 )
             }
             Result.success(Unit)
@@ -105,6 +116,17 @@ class RepositorioAutenticacionSupabase(private val context: Context) : Repositor
                     pesoObjetivoKg = perfilRemoto.pesoObjetivoKg,
                     createdAt = perfilRemoto.createdAt,
                     updatedAt = perfilRemoto.updatedAt
+                )
+            )
+
+            // Puebla el perfil completo para que el nombre real esté disponible
+            // de forma reactiva en las pantallas (Dashboard y Perfil).
+            db.daoPerfilUsuario().insertar(
+                EntidadPerfilUsuario(
+                    id = perfilRemoto.id,
+                    email = perfilRemoto.email,
+                    nombre = perfilRemoto.nombre,
+                    pesoObjetivoKg = perfilRemoto.pesoObjetivoKg
                 )
             )
             Result.success(Unit)

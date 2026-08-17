@@ -19,6 +19,7 @@ data class EntidadPerfilUsuario(
     val id: String,
     val email: String,
     val nombre: String,
+    val alias: String? = null,
     val pesoObjetivoKg: Double? = null,
     val alturaCm: Double? = null,
     val edad: Int? = null,

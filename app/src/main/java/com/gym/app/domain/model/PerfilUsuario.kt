@@ -29,6 +29,7 @@ import kotlin.math.roundToInt
  * @property id Identificador único del perfil (coincide con el id del usuario autenticado).
  * @property email Correo electrónico asociado al perfil.
  * @property nombre Nombre público del usuario.
+ * @property alias Alias o nombre de usuario elegido por el usuario (opcional).
  * @property pesoObjetivoKg Peso corporal de referencia en kilogramos (objetivo o actual estimado).
  * @property alturaCm Estatura en centímetros.
  * @property edad Edad en años.
@@ -41,6 +42,7 @@ data class PerfilUsuario(
     val id: String,
     val email: String,
     val nombre: String,
+    val alias: String? = null,
     val pesoObjetivoKg: Double? = null,
     val alturaCm: Double? = null,
     val edad: Int? = null,
