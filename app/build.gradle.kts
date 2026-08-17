@@ -83,6 +83,24 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    // ---------------------------------------------------------------------
+    // Nombre descriptivo del APK
+    // ---------------------------------------------------------------------
+    // ANOTACIÓN (requisito del usuario): el nombre del APK generado debe ser
+    // descriptivo para facilitar su identificación al instalarlo a mano o al
+    // distribuirlo entre dispositivos. Se genera con el patrón:
+    //   GYM-MMG-<versionName>-<buildType>.apk   (p. ej. GYM-MMG-1.0-debug.apk)
+    // Aplicable a todos los build types (debug y release).
+    // ---------------------------------------------------------------------
+    applicationVariants.all {
+        val variante = this
+        variante.outputs
+            .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
+            .forEach { salida ->
+                salida.outputFileName = "GYM-MMG-${variante.versionName}-${variante.name}.apk"
+            }
+    }
 }
 
 dependencies {
