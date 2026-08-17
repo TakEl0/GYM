@@ -18,6 +18,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gym.app.di.ContenedorDependencias
 import com.gym.app.presentation.ui.theme.AzulPrimario
 import com.gym.app.presentation.ui.theme.CianAcento
 import com.gym.app.presentation.ui.theme.SuperficieOscura
@@ -28,9 +30,11 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-fun PantallaComunidadGYM() {
+fun PantallaComunidadGYM(contenedor: ContenedorDependencias) {
     val context = LocalContext.current
-    val viewModel: ComunidadViewModel = remember { ComunidadViewModel(context) }
+    val viewModel: ComunidadViewModel = viewModel {
+        ComunidadViewModel(context, contenedor)
+    }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
     var textoPublicacion by remember { mutableStateOf("") }
@@ -160,7 +164,7 @@ fun PantallaComunidadGYM() {
                     TarjetaPublicacion(
                         publicacion = publicacion,
                         onReaccionar = { tipo ->
-                            viewModel.reaccionar(publicacion.id, publicacion.userId, tipo)
+                            viewModel.reaccionar(publicacion.id, tipo)
                         }
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -194,8 +198,6 @@ fun PantallaComunidadGYM() {
                 TextButton(onClick = {
                     if (textoPublicacion.isNotBlank()) {
                         viewModel.crearPublicacion(
-                            userId = "user_actual",
-                            autorNombre = "Alex Atleta",
                             contenido = textoPublicacion,
                             urlImagen = urlImagen.ifBlank { null }
                         )
