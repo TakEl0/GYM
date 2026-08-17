@@ -11,7 +11,8 @@ import androidx.room.PrimaryKey
 /**
  * @class EntidadMaquina
  * @brief Máquina del gimnasio con los grupos musculares que trabaja y su tipo
- * de equipamiento (máquina guiada, polea, barra o mancuernas).
+ * de equipamiento (máquina guiada, polea, barra o mancuernas), marca, modelo,
+ * ejercicios posibles y sinónimos serializados.
  */
 @Entity(
     tableName = "maquina",
@@ -24,5 +25,9 @@ data class EntidadMaquina(
     val nombre: String,
     val grupoMuscular: String, // join por coma
     val tipoEquipamiento: String, // MAQUINA_GUIADA / POLEA / BARRA / MANCUERNAS
-    val disponible: Boolean
+    val disponible: Boolean,
+    val marca: String? = null,
+    val modelo: String? = null,
+    val ejerciciosPosibles: String = "", // separados por comas
+    val sinonimos: String = "" // separados por comas
 )

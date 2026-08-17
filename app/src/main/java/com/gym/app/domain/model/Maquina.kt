@@ -20,13 +20,21 @@ package com.gym.app.domain.model
  * MANCUERNAS).
  * @property disponible Indica si la máquina está operativa y libre para su uso (por
  * defecto `true`).
+ * @property marca Marca del fabricante (p. ej. "Technogym", "Hammer Strength", "gym80", "Eleiko", "Nike Strength", "Rogue", "Watson").
+ * @property modelo Modelo específico de la máquina (p. ej. "Artis Leg Press", "Iso-Lateral Wide Chest").
+ * @property ejerciciosPosibles Lista de slugs de ejercicios que resuelve esta máquina.
+ * @property sinonimos Lista de nombres alternativos (sinónimos) con los que se puede referir al ejercicio o máquina.
  */
 data class Maquina(
     val id: String,
     val nombre: String,
     val grupoMuscular: List<String> = emptyList(),
     val tipoEquipamiento: String = TIPO_MAQUINA_GUIADA,
-    val disponible: Boolean = true
+    val disponible: Boolean = true,
+    val marca: String? = null,
+    val modelo: String? = null,
+    val ejerciciosPosibles: List<String> = emptyList(),
+    val sinonimos: List<String> = emptyList()
 ) {
 
     companion object {

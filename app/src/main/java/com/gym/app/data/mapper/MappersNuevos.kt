@@ -12,6 +12,7 @@ import com.gym.app.data.local.entidad.EntidadIngredienteToma
 import com.gym.app.data.local.entidad.EntidadItemListaCompra
 import com.gym.app.data.local.entidad.EntidadListaCompra
 import com.gym.app.data.local.entidad.EntidadMaquina
+import com.gym.app.data.local.entidad.EntidadMapeoAprendido
 import com.gym.app.data.local.entidad.EntidadPerfilUsuario
 import com.gym.app.data.local.entidad.EntidadPlanComida
 import com.gym.app.data.local.entidad.EntidadRutina
@@ -26,6 +27,7 @@ import com.gym.app.domain.model.IngredienteToma
 import com.gym.app.domain.model.ItemListaCompra
 import com.gym.app.domain.model.ListaCompra
 import com.gym.app.domain.model.Maquina
+import com.gym.app.domain.model.MapeoAprendido
 import com.gym.app.domain.model.PerfilUsuario
 import com.gym.app.domain.model.PlanComida
 import com.gym.app.domain.model.Rutina
@@ -241,7 +243,11 @@ fun EntidadMaquina.aDominio(): Maquina = Maquina(
     nombre = nombre,
     grupoMuscular = grupoMuscular.aLista(),
     tipoEquipamiento = tipoEquipamiento,
-    disponible = disponible
+    disponible = disponible,
+    marca = marca,
+    modelo = modelo,
+    ejerciciosPosibles = ejerciciosPosibles.aLista(),
+    sinonimos = sinonimos.aLista()
 )
 
 /** Convierte [Gimnasio] de dominio a [EntidadGimnasio] para Room. */
@@ -259,7 +265,11 @@ fun Maquina.aEntidad(gimnasioId: String): EntidadMaquina = EntidadMaquina(
     nombre = nombre,
     grupoMuscular = grupoMuscular.aTexto(),
     tipoEquipamiento = tipoEquipamiento,
-    disponible = disponible
+    disponible = disponible,
+    marca = marca,
+    modelo = modelo,
+    ejerciciosPosibles = ejerciciosPosibles.aTexto(),
+    sinonimos = sinonimos.aTexto()
 )
 
 // ─── Ejercicio ────────────────────────────────────────────────────────────────
@@ -353,4 +363,20 @@ fun SesionEntrenamiento.aEntidad(): EntidadSesionEntrenamiento = EntidadSesionEn
     duracionMinutos = duracionMinutos,
     completo = completo,
     sincronizado = false
+)
+
+// ─── MapeoAprendido ────────────────────────────────────────────────────────────
+
+/** Convierte [EntidadMapeoAprendido] a [MapeoAprendido] de dominio. */
+fun EntidadMapeoAprendido.aDominio(): MapeoAprendido = MapeoAprendido(
+    nombreNormalizado = nombreNormalizado,
+    maquinaId = maquinaId,
+    fecha = fecha
+)
+
+/** Convierte [MapeoAprendido] de dominio a [EntidadMapeoAprendido] para Room. */
+fun MapeoAprendido.aEntidad(): EntidadMapeoAprendido = EntidadMapeoAprendido(
+    nombreNormalizado = nombreNormalizado,
+    maquinaId = maquinaId,
+    fecha = fecha
 )
