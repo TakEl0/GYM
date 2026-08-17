@@ -18,3 +18,7 @@ app/build/
 # Capturas y artefactos temporales
 *.apk
 *.aab
+
+# Documentos personales de salud (informes InBody, dietas y planes del nutricionista)
+# Contienen datos sanitarios personales: NUNCA versionar en el repositorio.
+Documentacion/
