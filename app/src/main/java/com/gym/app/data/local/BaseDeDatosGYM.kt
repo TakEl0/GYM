@@ -15,6 +15,7 @@ import com.gym.app.data.local.dao.DaoEntrenamiento
 import com.gym.app.data.local.dao.DaoGimnasio
 import com.gym.app.data.local.dao.DaoIngesta
 import com.gym.app.data.local.dao.DaoListaCompra
+import com.gym.app.data.local.dao.DaoMapeoAprendido
 import com.gym.app.data.local.dao.DaoPerfilUsuario
 import com.gym.app.data.local.dao.DaoPlanComida
 import com.gym.app.data.local.dao.DaoRegistroPeso
@@ -32,6 +33,7 @@ import com.gym.app.data.local.entidad.EntidadIngredienteToma
 import com.gym.app.data.local.entidad.EntidadItemListaCompra
 import com.gym.app.data.local.entidad.EntidadListaCompra
 import com.gym.app.data.local.entidad.EntidadMaquina
+import com.gym.app.data.local.entidad.EntidadMapeoAprendido
 import com.gym.app.data.local.entidad.EntidadPerfilUsuario
 import com.gym.app.data.local.entidad.EntidadPlanComida
 import com.gym.app.data.local.entidad.EntidadRegistroPeso
@@ -62,9 +64,10 @@ import com.gym.app.data.local.entidad.EntidadUsuarioPerfil
         EntidadEjercicio::class,
         EntidadRutina::class,
         EntidadBloqueRutina::class,
-        EntidadSesionEntrenamiento::class
+        EntidadSesionEntrenamiento::class,
+        EntidadMapeoAprendido::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -82,6 +85,7 @@ abstract class BaseDeDatosGYM : RoomDatabase() {
     abstract fun daoEjercicio(): DaoEjercicio
     abstract fun daoRutina(): DaoRutina
     abstract fun daoSesionEntrenamiento(): DaoSesionEntrenamiento
+    abstract fun daoMapeoAprendido(): DaoMapeoAprendido
 
     companion object {
         @Volatile
