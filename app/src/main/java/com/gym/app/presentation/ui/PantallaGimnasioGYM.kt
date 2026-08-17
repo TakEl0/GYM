@@ -474,7 +474,9 @@ private fun DialogoImportarCatalogo(
             familias.mapValues { (_, lista) ->
                 lista.filter { entrada ->
                     entrada.nombre.lowercase().contains(termino) ||
-                        entrada.grupoMuscular.any { it.lowercase().contains(termino) }
+                        entrada.grupoMuscular.any { it.lowercase().contains(termino) } ||
+                        entrada.marca?.lowercase()?.contains(termino) == true ||
+                        entrada.modelo?.lowercase()?.contains(termino) == true
                 }
             }.filterValues { it.isNotEmpty() }
         }
@@ -492,8 +494,9 @@ private fun DialogoImportarCatalogo(
         text = {
             Column {
                 Text(
-                    text = "Selecciona las máquinas de tu gimnasio desde el catálogo. " +
-                        "Las ya importadas aparecen marcadas y no pueden duplicarse.",
+                    text = "Selecciona las máquinas de tu gimnasio desde el catálogo real de " +
+                        "Fitness Park (Technogym, Hammer Strength, gym80, Eleiko). Las ya " +
+                        "importadas aparecen marcadas y no pueden duplicarse.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -617,6 +620,17 @@ private fun FilaCatalogo(
                 color = colorFila,
                 fontWeight = if (yaImportada) FontWeight.Normal else FontWeight.Medium
             )
+            // Línea secundaria con la marca y el modelo de la máquina cuando existen.
+            val marcaModelo = listOfNotNull(entrada.marca, entrada.modelo)
+                .joinToString(" · ")
+                .takeIf { it.isNotBlank() }
+            if (marcaModelo != null) {
+                Text(
+                    text = marcaModelo,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AzulSecundario
+                )
+            }
             Text(
                 text = entrada.grupoMuscular.joinToString(" · "),
                 style = MaterialTheme.typography.labelSmall,

@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gym.app.di.ContenedorDependencias
+import com.gym.app.domain.usecase.importacion.ResultadoImportacionRutina
 import com.gym.app.presentation.ui.theme.AzulPrimario
 import com.gym.app.presentation.ui.theme.AzulSecundario
 import com.gym.app.presentation.ui.theme.CianAcento
@@ -172,6 +173,18 @@ fun PantallaImportacionGYM(
                 importando = estado.importando,
                 onImportar = { viewModel.importar(contexto) }
             )
+
+            // Resultado del mapeo de la rutina de entrenamiento a la maquinaria real.
+            estado.resultadoRutina?.let { resultado ->
+                Spacer(modifier = Modifier.height(16.dp))
+                TarjetaResultadoRutina(resultado = resultado)
+            }
+
+            // Aviso no bloqueante si la rutina no se pudo importar (p. ej. gimnasio sin configurar).
+            estado.avisoRutina?.let { aviso ->
+                Spacer(modifier = Modifier.height(12.dp))
+                TarjetaAvisoRutina(aviso = aviso)
+            }
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -337,3 +350,162 @@ private fun BotonImportar(
         }
     }
 }
+
+/**
+ * @brief Tarjeta de resultado del mapeo de la rutina importada.
+ *
+ * Resume el resultado de [ResultadoImportacionRutina]: número de rutinas creadas y
+ * ejercicios mapeados a las máquinas reales del gimnasio. Si quedaron ejercicios sin
+ * mapear se muestra una sección de aviso con la lista de nombres pendientes.
+ *
+ * @param resultado Resumen de la importación de la rutina.
+ */
+@Composable
+private fun TarjetaResultadoRutina(resultado: ResultadoImportacionRutina) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = SuperficieOscura)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(SuperficieElevada, RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = CianAcento,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.size(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Rutina importada en tu gimnasio",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Se crearon ${resultado.rutinasCreadas.size} rutinas con " +
+                            "${resultado.ejerciciosMapeados} ejercicios mapeados a las máquinas " +
+                            "de Fitness Park (${resultado.rutinasCreadas.size} días).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (resultado.ejerciciosSinMapear.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                SeccionEjerciciosSinMapear(ejercicios = resultado.ejerciciosSinMapear)
+            }
+        }
+    }
+}
+
+/**
+ * @brief Sección de aviso con los ejercicios del plan que no se resolvieron contra
+ * ninguna máquina del gimnasio.
+ *
+ * Muestra hasta [MAX_EJERCICIOS_SIN_MAPEAR_VISIBLES] nombres y un contador "+N más"
+ * si hay más. La confirmación manual o asistida por IA llegará en una fase posterior;
+ * por ahora solo se informa al usuario para que pueda revisarlos.
+ *
+ * @param ejercicios Nombres de los ejercicios pendientes de mapear.
+ */
+@Composable
+private fun SeccionEjerciciosSinMapear(ejercicios: List<String>) {
+    val visibles = ejercicios.take(MAX_EJERCICIOS_SIN_MAPEAR_VISIBLES)
+    val ocultos = ejercicios.size - visibles.size
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(SuperficieElevada, RoundedCornerShape(12.dp))
+            .padding(12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Filled.WarningAmber,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+            Text(
+                text = "${ejercicios.size} ejercicios sin mapear:",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        visibles.forEach { nombre ->
+            Text(
+                text = "• $nombre",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+        if (ocultos > 0) {
+            Text(
+                text = "+$ocultos más",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "Podrás revisarlos y confirmarlos manualmente en una fase posterior.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/**
+ * @brief Tarjeta informativa no bloqueante cuando la rutina no se pudo importar
+ * (p. ej. gimnasio sin maquinaria configurada). El resto de documentos ya
+ * importados conservan su éxito.
+ * @param aviso Mensaje de aviso con el motivo del fallo.
+ */
+@Composable
+private fun TarjetaAvisoRutina(aviso: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = SuperficieOscura)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Filled.WarningAmber,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.size(12.dp))
+            Column {
+                Text(
+                    text = "Rutina no importada",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = aviso,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/** Número máximo de ejercicios sin mapear mostrados en la tarjeta de resultado. */
+private const val MAX_EJERCICIOS_SIN_MAPEAR_VISIBLES: Int = 5

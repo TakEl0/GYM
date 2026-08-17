@@ -23,6 +23,7 @@ import com.gym.app.data.repository.RepositorioIngestaFake
 import com.gym.app.data.repository.RepositorioIngestaRoom
 import com.gym.app.data.repository.RepositorioListaCompraFake
 import com.gym.app.data.repository.RepositorioListaCompraRoom
+import com.gym.app.data.repository.RepositorioMapeoAprendidoRoom
 import com.gym.app.data.repository.RepositorioPerfilFake
 import com.gym.app.data.repository.RepositorioPerfilRoom
 import com.gym.app.data.repository.RepositorioPesoFake
@@ -40,6 +41,7 @@ import com.gym.app.domain.repository.RepositorioEntrenamiento
 import com.gym.app.domain.repository.RepositorioGimnasio
 import com.gym.app.domain.repository.RepositorioIngesta
 import com.gym.app.domain.repository.RepositorioListaCompra
+import com.gym.app.domain.repository.RepositorioMapeoAprendido
 import com.gym.app.domain.repository.RepositorioPerfil
 import com.gym.app.domain.repository.RepositorioPeso
 import com.gym.app.domain.repository.RepositorioPlanComida
@@ -62,9 +64,13 @@ import com.gym.app.domain.usecase.entrenamiento.RegistrarProgresoEntrenamientoCa
 import com.gym.app.domain.usecase.entrenamiento.RegistrarSesionEntrenamientoCasoUso
 import com.gym.app.domain.usecase.entrenamiento.SincronizarNutricionEntrenamientoCasoUso
 import com.gym.app.domain.usecase.gimnasio.AlternativasMaquinaCasoUso
+import com.gym.app.domain.usecase.gimnasio.AprenderMapeoManualCasoUso
 import com.gym.app.domain.usecase.gimnasio.GuardarGimnasioCasoUso
+import com.gym.app.domain.usecase.gimnasio.MotorMapeoEjercicioAMaquina
 import com.gym.app.domain.usecase.gimnasio.RegistrarMaquinaCasoUso
+import com.gym.app.domain.usecase.gimnasio.ResolverEjercicioAMaquinaCasoUso
 import com.gym.app.domain.usecase.importacion.ImportarDocumentosNaturvitiaCasoUso
+import com.gym.app.domain.usecase.importacion.ImportarRutinaNaturvitiaCasoUso
 import com.gym.app.domain.usecase.nutricion.CalcularObjetivosNutricionalesCasoUso
 import com.gym.app.domain.usecase.nutricion.CalcularResumenNutricionalAvanzadoCasoUso
 import com.gym.app.domain.usecase.nutricion.CalcularResumenNutricionalCasoUso
@@ -216,6 +222,15 @@ class ContenedorDependencias(private val context: Context) {
         }
     }
 
+    /**
+     * Repositorio de mapeos aprendidos (correcciones manuales de ejercicios → máquinas).
+     * El aprendizaje es un dato 100 % local que funciona sin conexión: se persiste siempre
+     * en Room, ya que no existe contraparte remota ni Fake de desarrollo para este puerto.
+     */
+    val repositorioMapeoAprendido: RepositorioMapeoAprendido by lazy {
+        RepositorioMapeoAprendidoRoom(context)
+    }
+
     // ---------------------------------------------------------------------
     // Casos de uso de autenticación
     // ---------------------------------------------------------------------
@@ -332,6 +347,21 @@ class ContenedorDependencias(private val context: Context) {
         RegistrarMaquinaCasoUso(repositorioGimnasio)
     }
 
+    /** Motor local de mapeo de ejercicios del plan PDF a máquinas del gimnasio. */
+    val motorMapeoEjercicioAMaquina: MotorMapeoEjercicioAMaquina by lazy {
+        MotorMapeoEjercicioAMaquina
+    }
+
+    /** Resuelve un ejercicio contra una máquina usando aprendizaje + motor local. */
+    val resolverEjercicioAMaquinaCasoUso: ResolverEjercicioAMaquinaCasoUso by lazy {
+        ResolverEjercicioAMaquinaCasoUso(motorMapeoEjercicioAMaquina, repositorioMapeoAprendido)
+    }
+
+    /** Persiste una corrección manual del usuario como mapeo aprendido. */
+    val aprenderMapeoManualCasoUso: AprenderMapeoManualCasoUso by lazy {
+        AprenderMapeoManualCasoUso(repositorioMapeoAprendido)
+    }
+
     // ---------------------------------------------------------------------
     // Casos de uso de nutrición
     // ---------------------------------------------------------------------
@@ -373,6 +403,20 @@ class ContenedorDependencias(private val context: Context) {
             repositorioPeso = repositorioPeso,
             repositorioComida = repositorioComida,
             repositorioEntrenamiento = repositorioEntrenamiento
+        )
+    }
+
+    /**
+     * Convierte el plan de entrenamiento Naturvitia (texto del PDF) en rutinas diarias
+     * persistentes, resolviendo cada ejercicio contra la maquinaria real del gimnasio
+     * mediante el motor local de mapeo (aprendizaje + reglas del ADR 0004).
+     */
+    val importarRutinaNaturvitiaCasoUso: ImportarRutinaNaturvitiaCasoUso by lazy {
+        ImportarRutinaNaturvitiaCasoUso(
+            repositorioRutina = repositorioRutina,
+            repositorioEjercicio = repositorioEjercicio,
+            repositorioGimnasio = repositorioGimnasio,
+            resolverEjercicioAMaquina = resolverEjercicioAMaquinaCasoUso
         )
     }
 
