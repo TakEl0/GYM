@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -75,6 +76,9 @@ object RutasSegundoNivelGYM {
 
     /** Ruta de la pantalla de Sesiones (historial semanal). */
     const val SESIONES: String = "sesiones"
+
+    /** Ruta de la pantalla de importación de documentos Naturvitia. */
+    const val IMPORTAR: String = "importar"
 }
 
 /**
@@ -142,7 +146,14 @@ private fun ContenidoAutenticado(contenedor: ContenedorDependencias) {
                                 contentDescription = destino.titulo
                             )
                         },
-                        label = { Text(destino.titulo) },
+                        label = {
+                            Text(
+                                text = destino.titulo,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = AzulPrimario,
                             selectedTextColor = AzulPrimario,
@@ -179,7 +190,7 @@ private fun ContenidoAutenticado(contenedor: ContenedorDependencias) {
                 PantallaRegistroPesoGYM(contenedor = contenedor)
             }
             composable(DestinoGYM.COMUNIDAD.ruta) {
-                PantallaComunidadGYM()
+                PantallaComunidadGYM(contenedor = contenedor)
             }
             composable(DestinoGYM.PERFIL.ruta) {
                 PantallaPerfilGYM(contenedor = contenedor)
@@ -200,6 +211,12 @@ private fun ContenidoAutenticado(contenedor: ContenedorDependencias) {
             }
             composable(RutasSegundoNivelGYM.SESIONES) {
                 PantallaSesionesGYM(contenedor = contenedor)
+            }
+            composable(RutasSegundoNivelGYM.IMPORTAR) {
+                PantallaImportacionGYM(
+                    contenedor = contenedor,
+                    alVolver = { controlador.popBackStack() }
+                )
             }
         }
     }

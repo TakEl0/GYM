@@ -98,7 +98,7 @@ fun PantallaNutricionGYM(
             val plan = estado.planHoy
             if (plan == null) {
                 if (!estado.cargando) {
-                    EstadoVacioPlan(onImportarDieta = { alNavegar(DestinoGYM.PERFIL.ruta) })
+                    EstadoVacioPlan(onImportarDieta = { alNavegar(RutasSegundoNivelGYM.IMPORTAR) })
                 }
             } else {
                 CabeceraObjetivosDia(plan = plan, resumen = estado.resumen)
@@ -215,7 +215,7 @@ private fun EstadoVacioPlan(onImportarDieta: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Importa tu dieta desde el perfil para comenzar el seguimiento.",
+                text = "Importa tu dieta (PDF) para comenzar el seguimiento del plan del día.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

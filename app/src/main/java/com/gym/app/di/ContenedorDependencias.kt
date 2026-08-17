@@ -74,6 +74,7 @@ import com.gym.app.domain.usecase.nutricion.RebalancearComidasPendientesCasoUso
 import com.gym.app.domain.usecase.nutricion.RegistrarComidaCasoUso
 import com.gym.app.domain.usecase.nutricion.RegistrarIngestaCasoUso
 import com.gym.app.domain.usecase.perfil.ActualizarObjetivosPerfilCasoUso
+import com.gym.app.domain.usecase.perfil.GuardarPerfilCasoUso
 import com.gym.app.domain.usecase.perfil.ObtenerPerfilCasoUso
 import com.gym.app.domain.usecase.perfil.SincronizarPerfilConBackendCasoUso
 import com.gym.app.domain.usecase.peso.ObservarPesosCasoUso
@@ -253,6 +254,10 @@ class ContenedorDependencias(private val context: Context) {
 
     val actualizarObjetivosPerfilCasoUso: ActualizarObjetivosPerfilCasoUso by lazy {
         ActualizarObjetivosPerfilCasoUso(repositorioPerfil)
+    }
+
+    val guardarPerfilCasoUso: GuardarPerfilCasoUso by lazy {
+        GuardarPerfilCasoUso(repositorioPerfil)
     }
 
     val sincronizarPerfilConBackendCasoUso: SincronizarPerfilConBackendCasoUso by lazy {
