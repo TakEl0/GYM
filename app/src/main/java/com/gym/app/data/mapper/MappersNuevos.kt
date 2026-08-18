@@ -16,8 +16,10 @@ import com.gym.app.data.local.entidad.EntidadMapeoAprendido
 import com.gym.app.data.local.entidad.EntidadPerfilUsuario
 import com.gym.app.data.local.entidad.EntidadPlanComida
 import com.gym.app.data.local.entidad.EntidadRutina
+import com.gym.app.data.local.entidad.EntidadSerieRealizada
 import com.gym.app.data.local.entidad.EntidadSesionEntrenamiento
 import com.gym.app.data.local.entidad.EntidadToma
+import com.gym.app.data.remote.dto.DtoSerieRealizadaRemoto
 import com.gym.app.domain.model.Alimento
 import com.gym.app.domain.model.BloqueRutina
 import com.gym.app.domain.model.Ejercicio
@@ -31,6 +33,7 @@ import com.gym.app.domain.model.MapeoAprendido
 import com.gym.app.domain.model.PerfilUsuario
 import com.gym.app.domain.model.PlanComida
 import com.gym.app.domain.model.Rutina
+import com.gym.app.domain.model.SerieRealizada
 import com.gym.app.domain.model.SesionEntrenamiento
 import com.gym.app.domain.model.Toma
 import java.time.Instant
@@ -378,5 +381,41 @@ fun EntidadMapeoAprendido.aDominio(): MapeoAprendido = MapeoAprendido(
 fun MapeoAprendido.aEntidad(): EntidadMapeoAprendido = EntidadMapeoAprendido(
     nombreNormalizado = nombreNormalizado,
     maquinaId = maquinaId,
+    fecha = fecha
+)
+
+// ─── SerieRealizada ───────────────────────────────────────────────────────────
+
+/** Convierte [EntidadSerieRealizada] a [SerieRealizada] de dominio. */
+fun EntidadSerieRealizada.aDominio(): SerieRealizada = SerieRealizada(
+    id = id,
+    sesionId = sesionId,
+    ejercicioId = ejercicioId,
+    numeroSerie = numeroSerie,
+    pesoKg = pesoKg,
+    repeticiones = repeticiones,
+    fecha = fecha
+)
+
+/** Convierte [SerieRealizada] de dominio a [EntidadSerieRealizada] para Room. */
+fun SerieRealizada.aEntidad(): EntidadSerieRealizada = EntidadSerieRealizada(
+    id = id,
+    sesionId = sesionId,
+    ejercicioId = ejercicioId,
+    numeroSerie = numeroSerie,
+    pesoKg = pesoKg,
+    repeticiones = repeticiones,
+    fecha = fecha,
+    sincronizado = false
+)
+
+/** Convierte [EntidadSerieRealizada] a [DtoSerieRealizadaRemoto] para Supabase. */
+fun EntidadSerieRealizada.aDtoRemoto(): DtoSerieRealizadaRemoto = DtoSerieRealizadaRemoto(
+    id = id,
+    sesionId = sesionId,
+    ejercicioId = ejercicioId,
+    numeroSerie = numeroSerie,
+    pesoKg = pesoKg,
+    repeticiones = repeticiones,
     fecha = fecha
 )

@@ -32,6 +32,8 @@ import com.gym.app.data.repository.RepositorioPlanComidaFake
 import com.gym.app.data.repository.RepositorioPlanComidaRoom
 import com.gym.app.data.repository.RepositorioRutinaFake
 import com.gym.app.data.repository.RepositorioRutinaRoom
+import com.gym.app.data.repository.RepositorioSerieRealizadaFake
+import com.gym.app.data.repository.RepositorioSerieRealizadaRoom
 import com.gym.app.data.repository.RepositorioSesionEntrenamientoFake
 import com.gym.app.data.repository.RepositorioSesionEntrenamientoRoom
 import com.gym.app.domain.repository.RepositorioAutenticacion
@@ -46,6 +48,7 @@ import com.gym.app.domain.repository.RepositorioPerfil
 import com.gym.app.domain.repository.RepositorioPeso
 import com.gym.app.domain.repository.RepositorioPlanComida
 import com.gym.app.domain.repository.RepositorioRutina
+import com.gym.app.domain.repository.RepositorioSerieRealizada
 import com.gym.app.domain.repository.RepositorioSesionEntrenamiento
 import com.gym.app.domain.usecase.autenticacion.CerrarSesionCasoUso
 import com.gym.app.domain.usecase.autenticacion.IniciarSesionCasoUso
@@ -55,12 +58,20 @@ import com.gym.app.domain.usecase.autenticacion.RegistrarUsuarioCasoUso
 import com.gym.app.domain.usecase.autenticacion.SincronizarPerfilCasoUso
 import com.gym.app.domain.usecase.compra.GenerarListaCompraSemanalCasoUso
 import com.gym.app.domain.usecase.compra.MarcarItemCompradoCasoUso
+import com.gym.app.domain.usecase.entrenamiento.CalcularCargaSugeridaCasoUso
+import com.gym.app.domain.usecase.entrenamiento.CalcularResumenSesionCasoUso
 import com.gym.app.domain.usecase.entrenamiento.CalcularUnRMCasoUso
 import com.gym.app.domain.usecase.entrenamiento.ConstruirRutinaCasoUso
+import com.gym.app.domain.usecase.entrenamiento.EditarSerieCasoUso
+import com.gym.app.domain.usecase.entrenamiento.EliminarSerieCasoUso
+import com.gym.app.domain.usecase.entrenamiento.FinalizarSesionActivaCasoUso
 import com.gym.app.domain.usecase.entrenamiento.ObservarEntrenamientosCalendarioCasoUso
 import com.gym.app.domain.usecase.entrenamiento.ObservarEntrenamientosCasoUso
 import com.gym.app.domain.usecase.entrenamiento.ObservarSesionesEntrenamientoCasoUso
+import com.gym.app.domain.usecase.entrenamiento.ObtenerRutinaPorIdCasoUso
+import com.gym.app.domain.usecase.entrenamiento.PrepararSesionActivaCasoUso
 import com.gym.app.domain.usecase.entrenamiento.RegistrarProgresoEntrenamientoCasoUso
+import com.gym.app.domain.usecase.entrenamiento.RegistrarSerieCasoUso
 import com.gym.app.domain.usecase.entrenamiento.RegistrarSesionEntrenamientoCasoUso
 import com.gym.app.domain.usecase.entrenamiento.SincronizarNutricionEntrenamientoCasoUso
 import com.gym.app.domain.usecase.gimnasio.AlternativasMaquinaCasoUso
@@ -222,6 +233,15 @@ class ContenedorDependencias(private val context: Context) {
         }
     }
 
+    /** Repositorio de series realizadas durante los entrenamientos en vivo. */
+    val repositorioSerieRealizada: RepositorioSerieRealizada by lazy {
+        if (ClienteSupabase.estaConfigurado) {
+            RepositorioSerieRealizadaRoom(context)
+        } else {
+            RepositorioSerieRealizadaFake()
+        }
+    }
+
     /**
      * Repositorio de mapeos aprendidos (correcciones manuales de ejercicios → máquinas).
      * El aprendizaje es un dato 100 % local que funciona sin conexión: se persiste siempre
@@ -329,6 +349,50 @@ class ContenedorDependencias(private val context: Context) {
 
     val calcularUnRMCasoUso: CalcularUnRMCasoUso by lazy {
         CalcularUnRMCasoUso()
+    }
+
+    // ---------------------------------------------------------------------
+    // Casos de uso de la sesión de entrenamiento en vivo
+    // ---------------------------------------------------------------------
+
+    /** Recupera la rutina por su identificador para iniciar la sesión en vivo. */
+    val obtenerRutinaPorIdCasoUso: ObtenerRutinaPorIdCasoUso by lazy {
+        ObtenerRutinaPorIdCasoUso(repositorioRutina)
+    }
+
+    /** Prepara los ejercicios de la sesión activa resolviendo cada bloque a su máquina real. */
+    val prepararSesionActivaCasoUso: PrepararSesionActivaCasoUso by lazy {
+        PrepararSesionActivaCasoUso(repositorioEjercicio, repositorioGimnasio)
+    }
+
+    /** Registra una serie realizada en la sesión en vivo (numeración automática). */
+    val registrarSerieCasoUso: RegistrarSerieCasoUso by lazy {
+        RegistrarSerieCasoUso(repositorioSerieRealizada)
+    }
+
+    /** Actualiza los kg y las repeticiones de una serie registrada. */
+    val editarSerieCasoUso: EditarSerieCasoUso by lazy {
+        EditarSerieCasoUso(repositorioSerieRealizada)
+    }
+
+    /** Elimina una serie y renumera las restantes de la sesión. */
+    val eliminarSerieCasoUso: EliminarSerieCasoUso by lazy {
+        EliminarSerieCasoUso(repositorioSerieRealizada)
+    }
+
+    /** Finaliza la sesión activa persistiendo el resumen en el historial. */
+    val finalizarSesionActivaCasoUso: FinalizarSesionActivaCasoUso by lazy {
+        FinalizarSesionActivaCasoUso(repositorioSerieRealizada, repositorioSesionEntrenamiento)
+    }
+
+    /** Consulta la carga sugerida (último kg) para el diálogo de registro de serie. */
+    val calcularCargaSugeridaCasoUso: CalcularCargaSugeridaCasoUso by lazy {
+        CalcularCargaSugeridaCasoUso(repositorioSerieRealizada)
+    }
+
+    /** Calcula el resumen estadístico (volumen total y 1RM) de una sesión finalizada. */
+    val calcularResumenSesionCasoUso: CalcularResumenSesionCasoUso by lazy {
+        CalcularResumenSesionCasoUso(repositorioSerieRealizada, repositorioEjercicio)
     }
 
     val sincronizarNutricionEntrenamientoCasoUso: SincronizarNutricionEntrenamientoCasoUso by lazy {
