@@ -16,8 +16,12 @@ app/build/
 .DS_Store
 
 # Capturas y artefactos temporales
+# Los APK se ignoran excepto los de la carpeta "apks/" (versionada en el repositorio
+# para que el usuario siempre tenga a mano la última compilación).
 *.apk
 *.aab
+!apks/
+!apks/*.apk
 
 # Documentos personales de salud (informes InBody, dietas y planes del nutricionista)
 # Contienen datos sanitarios personales: NUNCA versionar en el repositorio.

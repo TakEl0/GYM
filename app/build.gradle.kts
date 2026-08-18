@@ -85,13 +85,18 @@ android {
     }
 
     // ---------------------------------------------------------------------
-    // Nombre descriptivo del APK
+    // Nombre descriptivo del APK y copia a la carpeta versionada "apks/"
     // ---------------------------------------------------------------------
     // ANOTACIÓN (requisito del usuario): el nombre del APK generado debe ser
     // descriptivo para facilitar su identificación al instalarlo a mano o al
     // distribuirlo entre dispositivos. Se genera con el patrón:
     //   GYM-MMG-<versionName>-<buildType>.apk   (p. ej. GYM-MMG-1.0-debug.apk)
     // Aplicable a todos los build types (debug y release).
+    //
+    // Además, cada APK generado se copia automáticamente a la carpeta "apks/"
+    // en la raíz del proyecto (versionada en el control de versiones) para que
+    // el usuario siempre tenga a mano la última compilación. La copia se
+    // registra como una tarea dependiente del assemble de cada variante.
     // ---------------------------------------------------------------------
     applicationVariants.all {
         val variante = this
@@ -100,6 +105,20 @@ android {
             .forEach { salida ->
                 salida.outputFileName = "GYM-MMG-${variante.versionName}-${variante.name}.apk"
             }
+
+        // Copia del APK generado a la carpeta "apks/" de la raíz del proyecto.
+        val nombreApk = "GYM-MMG-${variante.versionName}-${variante.name}.apk"
+        val carpetaApks = rootProject.file("apks")
+        val tareaCopia = tasks.register<Copy>("copiarApk${variante.name.replaceFirstChar { it.uppercase() }}") {
+            dependsOn(variante.assembleProvider)
+            from(variante.outputs.map { it.outputFile })
+            into(carpetaApks)
+            rename { _ -> nombreApk }
+            doFirst {
+                carpetaApks.mkdirs()
+            }
+        }
+        variante.assembleProvider.configure { finalizedBy(tareaCopia) }
     }
 }
 
