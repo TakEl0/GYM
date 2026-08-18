@@ -80,12 +80,17 @@ private val DIAS_CONSTRUCCION: List<Pair<Int, String>> = listOf(
  * Crea el [RutinasViewModel] a partir del [ContenedorDependencias] y muestra la
  * lista de rutinas configuradas con sus bloques y días de la semana, una
  * calculadora de 1RM y el botón flotante que abre el diálogo de construcción
- * automática de una rutina PPL para el día seleccionado.
+ * automática de una rutina PPL para el día seleccionado. Cada tarjeta de rutina
+ * incluye el botón "Entrenar" que inicia la sesión en vivo.
  *
  * @param contenedor Contenedor de dependencias de la aplicación.
+ * @param alNavegar Acción de navegación a otra pantalla con la ruta destino.
  */
 @Composable
-fun PantallaRutinasGYM(contenedor: ContenedorDependencias) {
+fun PantallaRutinasGYM(
+    contenedor: ContenedorDependencias,
+    alNavegar: (String) -> Unit = {}
+) {
     val viewModel: RutinasViewModel = viewModel { RutinasViewModel(contenedor) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
@@ -142,7 +147,10 @@ fun PantallaRutinasGYM(contenedor: ContenedorDependencias) {
                 estado.rutinas.forEach { rutina ->
                     TarjetaRutina(
                         rutina = rutina,
-                        ejercicios = estado.ejercicios
+                        ejercicios = estado.ejercicios,
+                        onEntrenar = { id ->
+                            alNavegar("${RutasSegundoNivelGYM.SESION_ACTIVA}/$id")
+                        }
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -351,9 +359,14 @@ private fun EstadoVacioRutinas() {
  * @brief Tarjeta con una rutina, sus bloques de series y los días de la semana.
  * @param rutina Rutina a representar.
  * @param ejercicios Catálogo de ejercicios para resolver los nombres de los bloques.
+ * @param onEntrenar Acción al pulsar "Entrenar" con el id de la rutina.
  */
 @Composable
-private fun TarjetaRutina(rutina: Rutina, ejercicios: List<Ejercicio>) {
+private fun TarjetaRutina(
+    rutina: Rutina,
+    ejercicios: List<Ejercicio>,
+    onEntrenar: (String) -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -397,6 +410,28 @@ private fun TarjetaRutina(rutina: Rutina, ejercicios: List<Ejercicio>) {
                 FilaBloqueEjercicio(
                     nombreEjercicio = nombreEjercicio,
                     bloques = bloques
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Button(
+                onClick = { onEntrenar(rutina.id) },
+                colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.FitnessCenter,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    text = "Entrenar",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }

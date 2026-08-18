@@ -4,6 +4,10 @@
     <!-- Permiso de red para la sincronización con Supabase (autenticación, datos de comunidad). -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Permiso de vibración (nivel normal, sin confirmación en tiempo de ejecución)
+         para el aviso háptico cuando termina el descanso durante la sesión en vivo. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:allowBackup="false"
         android:fullBackupContent="false"

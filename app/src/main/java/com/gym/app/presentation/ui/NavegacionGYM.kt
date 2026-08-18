@@ -79,6 +79,9 @@ object RutasSegundoNivelGYM {
 
     /** Ruta de la pantalla de importación de documentos Naturvitia. */
     const val IMPORTAR: String = "importar"
+
+    /** Ruta de la pantalla de entrenamiento en vivo (recibe el id de la rutina). */
+    const val SESION_ACTIVA: String = "sesion_activa"
 }
 
 /**
@@ -207,13 +210,24 @@ private fun ContenidoAutenticado(contenedor: ContenedorDependencias) {
                 PantallaGimnasioGYM(contenedor = contenedor)
             }
             composable(RutasSegundoNivelGYM.RUTINAS) {
-                PantallaRutinasGYM(contenedor = contenedor)
+                PantallaRutinasGYM(
+                    contenedor = contenedor,
+                    alNavegar = { ruta -> controlador.navigate(ruta) }
+                )
             }
             composable(RutasSegundoNivelGYM.SESIONES) {
                 PantallaSesionesGYM(contenedor = contenedor)
             }
             composable(RutasSegundoNivelGYM.IMPORTAR) {
                 PantallaImportacionGYM(
+                    contenedor = contenedor,
+                    alVolver = { controlador.popBackStack() }
+                )
+            }
+            composable("${RutasSegundoNivelGYM.SESION_ACTIVA}/{rutinaId}") { entrada ->
+                val rutinaId = entrada.arguments?.getString("rutinaId").orEmpty()
+                PantallaEntrenamientoEnVivoGYM(
+                    rutinaId = rutinaId,
                     contenedor = contenedor,
                     alVolver = { controlador.popBackStack() }
                 )
